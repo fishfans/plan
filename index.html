@@ -4,7 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The gift for XiaoSheng by berlinlancho</title>
-<!-- 字体：使用系统自带字体 -->
+<!-- 字体：本地文件 -->
+<style>
+@font-face { font-family: 'Caveat'; font-style: normal; font-weight: 400; src: url('dependency/Caveat-Regular.ttf') format('truetype'); }
+@font-face { font-family: 'Caveat'; font-style: normal; font-weight: 600; src: url('dependency/Caveat-SemiBold.ttf') format('truetype'); }
+@font-face { font-family: 'Caveat'; font-style: normal; font-weight: 700; src: url('dependency/Caveat-Bold.ttf') format('truetype'); }
+@font-face { font-family: 'Ma Shan Zheng'; font-style: normal; font-weight: 400; src: url('dependency/MaShanZheng-Regular.ttf') format('truetype'); }
+</style>
 <!-- JSZip: 打包ZIP文件 (本地) -->
 <script src="dependency/jszip.min.js"></script>
 <!-- html2canvas: 页面截图 (本地) -->
@@ -14,7 +20,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --font-hand: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-hand: 'Caveat', 'Ma Shan Zheng', cursive;
   --color-ink: #2c2c2c;
   --color-paper: #fdfdf8;
   --color-border: #444;
