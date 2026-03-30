@@ -1196,30 +1196,25 @@ function addPlanItem() {
   var ps = getSelectedPlanSet();
   if (!ps) return;
   if (!ps.items) ps.items = [];
+  var newId = uid();
   ps.items.push({
-    id: uid(),
+    id: newId,
     content: 'New Item',
     order: ps.items.length,
     tags: []
   });
   render();
-}
-
-function addPlanItemAndFocus() {
-  var ps = getSelectedPlanSet();
-  if (!ps) return;
-  if (!ps.items) ps.items = [];
-  var newItem = {
-    id: uid(),
-    content: '',
-    order: ps.items.length,
-    tags: []
-  };
-  ps.items.push(newItem);
-  render();
-  // 渲染后聚焦新 item，清空内容让用户直接编辑
-  var el = document.querySelector('.plan-item-content[data-item-id="' + newItem.id + '"]');
-  if (el) el.focus();
+  // 聚焦到新 item 的编辑区域
+  var newEl = document.querySelector('.plan-item-content[data-item-id="' + newId + '"]');
+  if (newEl) {
+    newEl.focus();
+    // 选中文字方便直接覆盖
+    var range = document.createRange();
+    range.selectNodeContents(newEl);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
 }
 
 // ==================== 日期分页 ====================
@@ -1512,28 +1507,18 @@ document.addEventListener('keydown', function(e) {
     closeChangeDateModal(false);
     return;
   }
-
-  // 编辑态不拦截快捷键
-  var tag = (e.target.tagName || '').toLowerCase();
-  if (e.target.getAttribute('contenteditable') === 'true' || tag === 'input' || tag === 'textarea') return;
-
-  // Enter → 在选中 plan set 中新增 plan item
-  if (e.key === 'Enter' && state.selectedPlanSetId) {
+  if (e.target.getAttribute('contenteditable') === 'true' || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'Enter') {
     e.preventDefault();
-    addPlanItemAndFocus();
-    return;
+    addPlanItem();
   }
-
-  // ← → 切换日期
   if (e.key === 'ArrowLeft') {
     e.preventDefault();
     changeDate(-1);
-    return;
   }
   if (e.key === 'ArrowRight') {
     e.preventDefault();
     changeDate(1);
-    return;
   }
 });
 
