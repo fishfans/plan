@@ -153,11 +153,11 @@ html, body {
 .plan-set.dragging {
   opacity: 0.4;
 }
-.plan-set.no-transition {
-  transition: none !important;
-}
 .plan-set.drag-placeholder {
   visibility: hidden;
+}
+.plan-set.no-transition {
+  transition: none !important;
 }
 .plan-set.selected {
   box-shadow: 3px 3px 0 rgba(0,0,0,0.08);
@@ -1047,7 +1047,7 @@ function setupDragAndDrop() {
     if (!dragState.active || !draggedSetId) return;
     e.dataTransfer.dropEffect = 'move';
     var deltaY = e.clientY - dragState.startY;
-    applyContinuousShift(deltaY, dragState);
+    applyContinuousShift(deltaY);
     // Auto-scroll near edges
     var mainEl = document.getElementById('main-content');
     var mainRect = mainEl.getBoundingClientRect();
@@ -1083,22 +1083,20 @@ function setupDragAndDrop() {
   });
 }
 
-function applyContinuousShift(deltaY, state) {
+function applyContinuousShift(deltaY) {
   var allSets = document.querySelectorAll('#plan-list .plan-set');
-  var origIdx = state.draggedOrigIndex;
-  var h = state.draggedElHeight;
+  var origIdx = dragState.draggedOrigIndex;
+  var h = dragState.draggedElHeight;
   var absDelta = Math.abs(deltaY);
   for (var i = 0; i < allSets.length; i++) {
     var el = allSets[i];
-    if (el === state.draggedEl) continue;
+    if (el === dragState.draggedEl) continue;
     var shift = 0;
     if (deltaY > 0 && i > origIdx) {
-      // 向下拖：下方的元素逐渐上移
       var dist = i - origIdx - 1;
       var raw = absDelta - dist * h;
       shift = raw >= h ? -h : (raw > 0 ? -raw : 0);
     } else if (deltaY < 0 && i < origIdx) {
-      // 向上拖：上方的元素逐渐下移
       var dist = origIdx - i - 1;
       var raw = absDelta - dist * h;
       shift = raw >= h ? h : (raw > 0 ? raw : 0);
@@ -1128,110 +1126,6 @@ function finishDrag() {
   dragState.startY = 0;
   draggedSetId = null;
   allowDrag = false;
-}
-
-// ==================== 触摸拖拽排序 (Mobile) ====================
-var touchDrag = {
-  active: false, el: null, setId: null, ghost: null,
-  startY: 0, offsetY: 0, origIdx: -1, elH: 0, lastY: 0
-};
-
-function initTouchDrag() {
-  var container = document.getElementById('plan-list');
-  container.addEventListener('touchstart', handleTouchStart, { passive: false });
-  container.addEventListener('touchmove', handleTouchMove, { passive: false });
-  container.addEventListener('touchend', handleTouchEnd, { passive: false });
-}
-
-function handleTouchStart(e) {
-  var handle = e.target.closest('.drag-handle');
-  if (!handle) return;
-  var planSet = handle.closest('.plan-set');
-  if (!planSet) return;
-  e.preventDefault();
-  touchDrag.el = planSet;
-  touchDrag.setId = planSet.getAttribute('data-id');
-  touchDrag.startY = e.touches[0].clientY;
-  touchDrag.lastY = touchDrag.startY;
-  var rect = planSet.getBoundingClientRect();
-  touchDrag.offsetY = touchDrag.startY - rect.top;
-  touchDrag.elH = rect.height;
-  var allSets = document.querySelectorAll('#plan-list .plan-set');
-  touchDrag.origIdx = Array.prototype.indexOf.call(allSets, planSet);
-  touchDrag.active = true;
-  planSet.classList.add('drag-placeholder');
-  var ghost = planSet.cloneNode(true);
-  ghost.classList.remove('drag-placeholder');
-  ghost.classList.add('dragging');
-  ghost.style.cssText = 'position:fixed;width:' + rect.width + 'px;left:' + rect.left + 'px;top:' + rect.top + 'px;z-index:1000;pointer-events:none;opacity:0.85;box-shadow:4px 4px 16px rgba(0,0,0,0.2);transition:none;margin:0;';
-  ghost.removeAttribute('draggable');
-  document.body.appendChild(ghost);
-  touchDrag.ghost = ghost;
-  for (var j = 0; j < allSets.length; j++) {
-    if (allSets[j] !== planSet) {
-      allSets[j].style.transition = 'transform 0.15s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s, opacity 0.2s';
-    }
-  }
-}
-
-function handleTouchMove(e) {
-  if (!touchDrag.active) return;
-  e.preventDefault();
-  var touch = e.touches[0];
-  touchDrag.lastY = touch.clientY;
-  touchDrag.ghost.style.top = (touch.clientY - touchDrag.offsetY) + 'px';
-  var deltaY = touch.clientY - touchDrag.startY;
-  applyContinuousShift(deltaY, touchDrag);
-  // Auto-scroll near edges
-  var mainEl = document.getElementById('main-content');
-  var mainRect = mainEl.getBoundingClientRect();
-  if (touch.clientY - mainRect.top < 60) {
-    mainEl.scrollTop -= 10;
-  } else if (mainRect.bottom - touch.clientY < 60) {
-    mainEl.scrollTop += 10;
-  }
-}
-
-function handleTouchEnd() {
-  if (!touchDrag.active) return;
-  if (touchDrag.ghost) document.body.removeChild(touchDrag.ghost);
-  var allSets = document.querySelectorAll('#plan-list .plan-set');
-  for (var i = 0; i < allSets.length; i++) {
-    allSets[i].classList.add('no-transition');
-    allSets[i].style.transform = '';
-    allSets[i].style.transition = '';
-  }
-  if (touchDrag.el) touchDrag.el.classList.remove('drag-placeholder');
-  document.getElementById('plan-list').offsetHeight;
-  for (var i = 0; i < allSets.length; i++) {
-    allSets[i].classList.remove('no-transition');
-  }
-  var deltaY = touchDrag.lastY - touchDrag.startY;
-  var h = touchDrag.elH;
-  var positionsMoved = Math.round(deltaY / h);
-  var origIdx = touchDrag.origIdx;
-  var finalIdx = Math.max(0, Math.min(allSets.length - 1, origIdx + positionsMoved));
-  if (finalIdx !== origIdx) {
-    var data = getCurrentDateData();
-    var fromIdx = -1;
-    for (var i = 0; i < data.planSets.length; i++) {
-      if (data.planSets[i].id === touchDrag.setId) { fromIdx = i; break; }
-    }
-    if (fromIdx !== -1) {
-      var moved = data.planSets.splice(fromIdx, 1)[0];
-      data.planSets.splice(finalIdx, 0, moved);
-      for (var i = 0; i < data.planSets.length; i++) {
-        data.planSets[i].order = i;
-      }
-    }
-  }
-  touchDrag.active = false;
-  touchDrag.el = null;
-  touchDrag.setId = null;
-  touchDrag.ghost = null;
-  touchDrag.origIdx = -1;
-  touchDrag.lastY = 0;
-  render();
 }
 
 // ==================== CRUD 操作 ====================
