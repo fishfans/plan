@@ -37,6 +37,7 @@ function bindTagListEvents() {
       el.addEventListener('change', function() {
         var tag = getTagById(el.getAttribute('data-tag-id'));
         if (tag) tag.color = el.value;
+        markDirty();
       });
     })(colorInputs[i]);
   }
@@ -46,6 +47,7 @@ function bindTagListEvents() {
       el.addEventListener('change', function() {
         var tag = getTagById(el.getAttribute('data-tag-id'));
         if (tag && el.value.trim()) tag.name = el.value.trim();
+        markDirty();
       });
     })(nameInputs[i]);
   }
@@ -66,6 +68,7 @@ function addTag() {
   if (!name) { showToast('Please enter a tag name'); return; }
   state.tags.push({ id: uid(), name: name, color: colorEl.value });
   nameEl.value = '';
+  markDirty();
   renderTagList();
 }
 
@@ -86,5 +89,6 @@ function removeTag(tagId) {
       }
     }
   }
+  markDirty();
   renderTagList();
 }

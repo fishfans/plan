@@ -81,6 +81,7 @@ function setupDragAndDrop() {
       data.planSets[i].order = i;
     }
     finishDrag();
+    markDirty();
     render();
   });
 }

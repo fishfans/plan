@@ -10,7 +10,8 @@ var state = {
   dates: {},
   currentDate: '',
   selectedPlanSetId: null,
-  dataLoaded: false
+  dataLoaded: false,
+  dirty: false
 };
 
 var confirmCallback = null;

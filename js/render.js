@@ -92,6 +92,7 @@ function bindPlanSetEvents() {
       el.addEventListener('blur', function() {
         var ps = findPlanSet(el.getAttribute('data-set-id'));
         if (ps) ps.title = el.textContent.trim() || 'Untitled';
+        markDirty();
       });
       el.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
@@ -114,6 +115,7 @@ function bindPlanSetEvents() {
             if (data.planSets[i].id === setId) { data.planSets.splice(i, 1); break; }
           }
           if (state.selectedPlanSetId === setId) state.selectedPlanSetId = null;
+          markDirty();
           render();
         });
       });
@@ -126,6 +128,7 @@ function bindPlanSetEvents() {
       el.addEventListener('blur', function() {
         var item = findPlanItem(el.getAttribute('data-set-id'), el.getAttribute('data-item-id'));
         if (item) item.content = el.textContent.trim();
+        markDirty();
       });
       el.addEventListener('dblclick', function() {
         var range = document.createRange();
@@ -155,6 +158,7 @@ function bindPlanSetEvents() {
         for (var j = 0; j < ps.items.length; j++) {
           if (ps.items[j].id === itemId) { ps.items.splice(j, 1); break; }
         }
+        markDirty();
         render();
       });
     })(itemDeletes[i]);

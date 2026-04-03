@@ -508,6 +508,109 @@ html, body {
 }
 .toast.show { opacity: 1; }
 
+/* ========== Save 按钮脏数据指示 ========== */
+#btn-save.dirty {
+  background: #fff3cd;
+  border-color: #ffc107;
+}
+
+/* ========== 密码弹窗 ========== */
+#password-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.25);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+#password-overlay.open { display: flex; }
+#password-box {
+  background: var(--color-paper);
+  padding: 24px 28px;
+  width: 360px;
+  max-width: 90vw;
+  text-align: center;
+}
+#password-box h3 {
+  font-size: 26px;
+  margin-bottom: 8px;
+}
+.password-field {
+  width: 100%;
+  border: none;
+  border-bottom: 2px dashed #ccc;
+  background: transparent;
+  font-family: var(--font-hand);
+  font-size: 18px;
+  padding: 6px 8px;
+  outline: none;
+  margin-bottom: 8px;
+  text-align: center;
+}
+.password-field:focus { border-bottom-color: var(--color-ink); }
+
+/* ========== Settings 全屏覆盖 ========== */
+#settings-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--color-paper);
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(0,0,0,0.02) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0,0,0,0.02) 0%, transparent 50%);
+  z-index: 150;
+  overflow-y: auto;
+}
+#settings-overlay.open { display: block; }
+#settings-page {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+.settings-group {
+  margin-bottom: 16px;
+}
+.settings-group label {
+  display: block;
+  font-size: 16px;
+  color: var(--color-light);
+  margin-bottom: 4px;
+}
+.settings-group input {
+  width: 100%;
+  border: none;
+  border-bottom: 2px dashed #ccc;
+  background: transparent;
+  font-family: var(--font-hand);
+  font-size: 20px;
+  padding: 6px 8px;
+  outline: none;
+  color: var(--color-ink);
+}
+.settings-group input:focus { border-bottom-color: var(--color-ink); }
+.settings-group .hint {
+  font-size: 13px;
+  color: var(--color-light);
+  margin-top: 2px;
+}
+.settings-status {
+  text-align: center;
+  font-size: 16px;
+  min-height: 24px;
+  margin: 12px 0;
+  padding: 6px;
+}
+.settings-status.loading { color: var(--color-light); }
+.settings-status.success { color: var(--color-tag-low); }
+.settings-status.error { color: var(--color-tag-urgent); }
+.settings-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 /* ========== 手机端适配 ========== */
 @media screen and (max-width: 768px) {
   #toolbar {
@@ -568,6 +671,9 @@ html, body {
         <button class="sketch-btn">Export ZIP</button>
       </div>
     </div>
+    <span style="border-left:2px solid #ccc;height:24px;margin:0 2px;"></span>
+    <button id="btn-save" class="sketch-btn">Save</button>
+    <button id="btn-submit" class="sketch-btn">Submit</button>
   </div>
 
   <!-- 主内容区 -->
@@ -581,6 +687,7 @@ html, body {
 
   <!-- 底部日期分页 -->
   <div id="date-pagination" class="sketch-box">
+    <button id="btn-settings" class="sketch-btn" title="GitHub Settings" style="margin-right:auto;">&#9881;</button>
     <div id="date-nav-btns">
       <button class="sketch-btn" data-action="prev-date">&lt; Prev</button>
       <input type="date" id="date-display">
@@ -638,8 +745,72 @@ html, body {
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
+<!-- 密码输入弹窗 -->
+<div id="password-overlay">
+  <div id="password-box" class="sketch-box">
+    <h3 id="password-title">~ Enter Password ~</h3>
+    <p id="password-msg" style="font-size:16px;color:#888;margin-bottom:10px;text-align:center;">Enter password</p>
+    <div style="margin-bottom:14px;">
+      <input type="password" id="password-input" placeholder="Password..." class="password-field">
+      <input type="password" id="password-confirm" placeholder="Confirm password..." class="password-field" style="display:none;">
+    </div>
+    <div class="btns" style="display:flex;justify-content:center;gap:10px;">
+      <button class="sketch-btn" id="password-ok">OK</button>
+      <button class="sketch-btn" id="password-cancel">Skip</button>
+    </div>
+    <p id="password-error" style="color:var(--color-tag-urgent);font-size:14px;margin-top:8px;display:none;text-align:center;"></p>
+  </div>
+</div>
+
+<!-- GitHub 设置页面 (全屏覆盖) -->
+<div id="settings-overlay">
+  <div id="settings-page">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h2 style="font-size:28px;">~ GitHub Settings ~</h2>
+      <button class="sketch-btn" id="btn-settings-close">Back</button>
+    </div>
+
+    <div class="settings-group">
+      <label>GitHub Username / Organization</label>
+      <input type="text" id="cfg-owner" placeholder="e.g. octocat">
+    </div>
+    <div class="settings-group">
+      <label>Repository Name</label>
+      <input type="text" id="cfg-repo" placeholder="e.g. my-plan-data">
+    </div>
+    <div class="settings-group">
+      <label>File Path (in repo)</label>
+      <input type="text" id="cfg-path" placeholder="data/plandata.json" value="data/plandata.json">
+      <div class="hint">Plan data will be stored at this path in the repository</div>
+    </div>
+    <div class="settings-group">
+      <label>Branch</label>
+      <input type="text" id="cfg-branch" placeholder="main" value="main">
+    </div>
+    <div class="settings-group">
+      <label>Personal Access Token</label>
+      <input type="password" id="cfg-token" placeholder="ghp_xxxxxxxxxxxx">
+      <div class="hint">GitHub Token with repo scope &middot; <a href="https://github.com/settings/tokens" target="_blank" style="color:var(--color-tag-normal);">Generate Token</a></div>
+    </div>
+
+    <div id="settings-status" class="settings-status"></div>
+
+    <div class="settings-actions">
+      <button class="sketch-btn" id="btn-settings-test">Test Connection</button>
+      <button class="sketch-btn" id="btn-settings-save">Save Config</button>
+      <button class="sketch-btn" id="btn-settings-clear">Clear</button>
+    </div>
+  </div>
+</div>
+
 <script src="js/state.js"></script>
+<script src="js/crypto.js"></script>
+<script src="js/fileAccess.js"></script>
+<script src="js/storage.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/passwordModal.js"></script>
+<script src="js/github.js"></script>
+<script src="js/settings.js"></script>
 <script src="js/render.js"></script>
 <script src="js/tagDropdown.js"></script>
 <script src="js/dragDrop.js"></script>

@@ -34,6 +34,7 @@ function copyToNextDay() {
       items[j].id = uid();
     }
   }
+  markDirty();
   showToast('Copied to ' + formatDate(nextDate));
 }
 
@@ -64,6 +65,7 @@ function closeChangeDateModal(confirmed) {
   state.currentDate = newDate;
   state.selectedPlanSetId = null;
   state.dataLoaded = true;
+  markDirty();
   render();
   showToast('Data moved to ' + formatDate(newDate));
 }

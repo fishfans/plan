@@ -16,6 +16,7 @@ function doImport(e) {
       if (imported.currentDate) state.currentDate = imported.currentDate;
       state.dataLoaded = true;
       state.selectedPlanSetId = null;
+      markDirty();
       render();
       showToast('Imported successfully!');
     } catch(err) {
@@ -42,6 +43,7 @@ function addPlanSet() {
   }
   state.selectedPlanSetId = ps.id;
   state.dataLoaded = true;
+  markDirty();
   render();
 }
 
@@ -67,6 +69,7 @@ function addPlanItem(planSetId, insertAfterItemId) {
   for (var i = 0; i < ps.items.length; i++) {
     ps.items[i].order = i;
   }
+  markDirty();
   render();
   // 聚焦到新 item
   var newEl = document.querySelector('.plan-item-content[data-item-id="' + newId + '"]');

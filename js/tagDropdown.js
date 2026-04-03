@@ -55,6 +55,7 @@ function toggleTagDropdown(setId, itemId, anchorEl) {
         var idx = it.tags.indexOf(tagId);
         if (idx !== -1) { it.tags.splice(idx, 1); }
         else { it.tags.push(tagId); }
+        markDirty();
         render();
       });
     })(options[i]);
