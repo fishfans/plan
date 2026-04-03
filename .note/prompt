@@ -61,3 +61,20 @@ create 按钮会变成了export按钮
 # 需要绑定一些快捷键
 1. 点击选中某个plan item时 回车可以在当前plan set 新增一个plan Item
 2. 左右方向键对象日期的prev 和 next 两个按钮
+
+
+# 重构
+1. 不要把所有的代码都放在一个html文件里面了，新建一个js的文件夹，把里面的功能js代码分成多个模块文件。
+3. 删除 +Plan itme 按钮。在每个plan set 的左上角，汉堡按钮的右边加一个 加号按钮，点击会在对应的plan set最下方新增一个plan item。需要优化一下
+回车新增plan item，应该是点击到某个plan item的时候回车，是直接在它的下方新增一个新的 plan Item
+4. 我发现一个问题，就是最后一个plan set 中plan item选择标签的时候因为标签下拉框较长导致显示不全，我希望当标签下拉框显示要超出页面长度的时候位置可以上移达到
+完整显示的目的
+5. 删除create 符号，点击+plan set就相当于开始创建了，提示语也可以修改一下。+plan set 符号和 + item tag符号应该放在左边，import 和 export按钮放在右边
+
+# 存储模块
+1. 需要按照 git_as_remote_db 里面demo那样，把github对应的仓库当作远程的数据存储目录！这个项目的存储需要发生较大的变化。增加两个按钮save 和submit。当导入或者
+创建之后，数据存储在浏览器localstorage里面，7天过期，点击save会把更新的数据保存到localstorage，点击submit就会git到对应的仓库路径。import文件之后也需要点击save
+才可存到浏览器localstorage里面。在底部最左边放上一个设置按钮，点击会打开新页面配置GitHub相关需要配置的参数，配置好可以测试连接就像demo里面一样，不同的是这些配置好的信息
+存储在js/config.json里面，后面打开也是直接从这个文件里面读取。不过存储到js/config.json的数据是加密的，每次用户输入配置好信息，测试成功后让让他提供一个密码进行加密。
+然后当点击submit要和github仓库交互的时候就需要弹窗用户输入密码(当然只需要输入一次，存储到内存里面，再提交就不会弹窗)，程序就使用密码解密json文件里面的数据，然后就可以
+和GitHub仓库交互。每次新打开页面的时候也是弹窗输入密码，以加载github仓库里面的内容。当然用户也可以直接关闭，离线的使用import和export。
