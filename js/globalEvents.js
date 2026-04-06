@@ -227,15 +227,39 @@ function grantAccess() {
   });
 }
 
-/** GitHub Pages 回退：fetch data/config.json */
+/** 确保工作目录句柄可用：无句柄时根据 config 中的 workDirName 提示用户选择 */
+function ensureWorkDirHandle() {
+  if (FileAccess.hasValidHandle()) return Promise.resolve();
+  var config = GitHub.getConfig();
+  var dirName = config && config.workDirName;
+  if (!dirName || !window.showDirectoryPicker) return Promise.resolve();
+
+  return new Promise(function(resolve) {
+    showConfirm('Select work directory: ' + dirName + '\n\nOK to open picker, Cancel to skip.', function(ok) {
+      if (!ok) { resolve(); return; }
+      window.showDirectoryPicker({ mode: 'readwrite' }).then(function(handle) {
+        return FileAccess.saveDirHandle(handle).then(function() {
+          showToast('Work path set!');
+        });
+      }).then(function() { resolve(); }).catch(function(e) {
+        if (e.name !== 'AbortError') showToast('Failed: ' + e.message);
+        resolve();
+      });
+    });
+  });
+}
+
+/** GitHub Pages 回退：fetch data/config.json → 解密 → 恢复工作目录 → 加载数据 */
 function tryLoadFromWeb() {
   fetch('data/config.json').then(function(res) {
     if (!res.ok) return null;
     return res.text();
   }).then(function(configText) {
-    if (configText) {
-      FileAccess.updateConfigCache(configText);
-      promptPasswordAndLoad(function() {
+    if (!configText) { render(); return; }
+    FileAccess.updateConfigCache(configText);
+    promptPasswordAndLoad(function() {
+      // 解密成功 → 尝试恢复工作目录句柄
+      ensureWorkDirHandle().then(function() {
         GitHub.fetchPlanData().then(function(data) {
           if (data) {
             applyRemoteData(data);
@@ -247,12 +271,10 @@ function tryLoadFromWeb() {
           showToast('Failed to load: ' + (err.message || err));
           render();
         });
-      }, function() {
-        render();
       });
-    } else {
+    }, function() {
       render();
-    }
+    });
   }).catch(function() {
     render();
   });
@@ -420,7 +442,7 @@ function toggleDataSource() {
           applyRemoteData(data);
           showToast('Switched to GitHub data');
         } else {
-          showToast('No remote data found');
+          showToast('No remote data yet. Use "Save Remote" to push local data.');
         }
       }).catch(function(e) {
         showToast('Failed: ' + e.message);

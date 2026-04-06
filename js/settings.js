@@ -45,6 +45,10 @@ var Settings = {
       input.value = FileAccess._rootDirHandle.name;
       el.textContent = 'Path: ' + FileAccess._rootDirHandle.name;
       el.style.color = 'var(--color-tag-low)';
+    } else if (input.value) {
+      // 有 workDirName（来自 config）但无句柄 → 提示重新选择
+      el.textContent = input.value + ' (re-select)';
+      el.style.color = 'var(--color-light)';
     } else {
       input.value = '';
       el.textContent = 'No path selected';
@@ -116,6 +120,10 @@ var Settings = {
     document.getElementById('cfg-path').value = config.path || 'data/plandata.json';
     document.getElementById('cfg-branch').value = config.branch || 'main';
     document.getElementById('cfg-token').value = config.token || '';
+    if (config.workDirName) {
+      document.getElementById('cfg-workpath').value = config.workDirName;
+    }
+    this._updateWorkPathStatus();
   },
 
   _clearForm: function() {
@@ -132,7 +140,10 @@ var Settings = {
       repo: document.getElementById('cfg-repo').value.trim(),
       path: document.getElementById('cfg-path').value.trim() || 'data/plandata.json',
       branch: document.getElementById('cfg-branch').value.trim() || 'main',
-      token: document.getElementById('cfg-token').value.trim()
+      token: document.getElementById('cfg-token').value.trim(),
+      workDirName: FileAccess._rootDirHandle
+        ? FileAccess._rootDirHandle.name
+        : document.getElementById('cfg-workpath').value.trim()
     };
   },
 

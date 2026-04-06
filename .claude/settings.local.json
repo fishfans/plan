@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C d:/WorkSpaceData/ClaudeCode2/plan remote -v)"
+    ]
+  }
+}
