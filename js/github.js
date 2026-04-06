@@ -130,28 +130,31 @@ var GitHub = {
   },
 
   /**
-   * 推送加密配置到仓库的 data/config.json
-   * 用于首次设置和修改设置时
-   * @param {string} encryptedJson - 加密后的 JSON 字符串
-   * @param {Object} tempConfig - 临时配置 {owner, repo, branch, token}，用于首次推送时 _config 还是 null 的情况
+   * 推送文件到指定仓库路径
+   * @param {Object} config - {owner, repo, branch, token}
+   * @param {string} remotePath - 远程路径，如 'data/config.json' 或 'users/alice.json'
+   * @param {string} content - 文件内容字符串
+   * @param {string} commitMsg - 可选，提交消息
+   * @returns {Promise}
    */
-  pushConfigFile: function(encryptedJson, tempConfig) {
-    var config = tempConfig || this._config;
+  pushFile: function(config, remotePath, content, commitMsg) {
     var url = 'https://api.github.com/repos/' + config.owner + '/' + config.repo +
-      '/contents/data/config.json?ref=' + config.branch;
+      '/contents/' + encodeURIComponent(remotePath) + '?ref=' + config.branch;
 
-    var self = this;
     return fetch(url, {
-      headers: this._getHeaders(config.token)
+      headers: {
+        'Authorization': 'token ' + config.token,
+        'Accept': 'application/vnd.github.v3+json'
+      }
     }).then(function(res) {
       if (res.status === 404) return null;
       if (!res.ok) return null;
       return res.json().then(function(data) { return data.sha; });
     }).catch(function() { return null; }).then(function(sha) {
-      var content = btoa(unescape(encodeURIComponent(encryptedJson)));
+      var encoded = btoa(unescape(encodeURIComponent(content)));
       var body = {
-        message: 'Update config - ' + new Date().toISOString().slice(0, 10),
-        content: content,
+        message: commitMsg || 'Update ' + remotePath + ' - ' + new Date().toISOString().slice(0, 10),
+        content: encoded,
         branch: config.branch
       };
       if (sha) body.sha = sha;
@@ -167,10 +170,22 @@ var GitHub = {
       });
     }).then(function(res) {
       if (!res.ok) return res.json().then(function(err) {
+        if (res.status === 409) throw new Error('SHA conflict - file was modified by others');
         throw new Error(err.message || 'HTTP ' + res.status);
       });
       return res.json();
     });
+  },
+
+  /**
+   * 推送加密配置到仓库的 data/config.json
+   * 用于首次设置和修改设置时
+   * @param {string} encryptedJson - 加密后的 JSON 字符串
+   * @param {Object} tempConfig - 临时配置 {owner, repo, branch, token}，用于首次推送时 _config 还是 null 的情况
+   */
+  pushConfigFile: function(encryptedJson, tempConfig) {
+    var config = tempConfig || this._config;
+    return this.pushFile(config, 'data/config.json', encryptedJson, 'Update config - ' + new Date().toISOString().slice(0, 10));
   },
 
   /** 清除内存中的配置和密码 */

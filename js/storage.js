@@ -54,14 +54,24 @@ var Storage = {
   // ==================== 加密配置 ====================
 
   /**
-   * 加密配置 → 写入本地 config.json → 推送到 GitHub data/config.json
+   * 加密配置 → 写入本地 config.json → 推送到 GitHub
+   * @param {Object} configData - 配置对象
+   * @param {string} password - 加密密码
+   * @param {Object} [options] - 可选参数
+   * @param {string} [options.remotePath] - 远程路径，默认 'data/config.json'
+   * @param {string} [options.localFileName] - 本地文件名，默认 'config.json'
    */
-  saveEncryptedConfig: function(configData, password) {
+  saveEncryptedConfig: function(configData, password, options) {
+    var localFile = (options && options.localFileName) || 'config.json';
+    var remotePath = (options && options.remotePath) || 'data/config.json';
     return Crypto.encrypt(JSON.stringify(configData), password).then(function(encryptedObj) {
       var jsonStr = JSON.stringify(encryptedObj, null, 2);
-      return FileAccess.writeLocalFile('config.json', jsonStr).then(function() {
+      return FileAccess.writeLocalFile(localFile, jsonStr).then(function() {
         FileAccess.updateConfigCache(jsonStr);
-        return GitHub.pushConfigFile(jsonStr, configData);
+        if (remotePath === 'data/config.json') {
+          return GitHub.pushConfigFile(jsonStr, configData);
+        }
+        return GitHub.pushFile(configData, remotePath, jsonStr);
       });
     });
   },

@@ -22,36 +22,43 @@ var FileAccess = {
     }.bind(this));
   },
 
-  /** 保存工作目录句柄到 IndexedDB（含时间戳，7天过期） */
-  saveDirHandle: function(handle) {
+  /** 保存工作目录句柄到 IndexedDB（含时间戳，7天过期）
+   * @param {FileSystemDirectoryHandle} handle
+   * @param {string} [username] - 用户名，用于多用户区分句柄
+   */
+  saveDirHandle: function(handle, username) {
     this._rootDirHandle = handle;
+    var key = username ? ('dirHandle_' + username) : 'dirHandle';
     return this._openDB().then(function(db) {
       return new Promise(function(resolve, reject) {
         var tx = db.transaction(this._DB_STORE, 'readwrite');
         tx.objectStore(this._DB_STORE).put({
           handle: handle,
           savedAt: Date.now()
-        }, 'dirHandle');
+        }, key);
         tx.oncomplete = function() { resolve(); };
         tx.onerror = function() { reject(tx.error); };
       }.bind(this));
     }.bind(this));
   },
 
-  /** 从 IndexedDB 恢复工作目录句柄（检查过期） */
-  getDirHandle: function() {
+  /** 从 IndexedDB 恢复工作目录句柄（检查过期）
+   * @param {string} [username] - 用户名，用于多用户区分句柄
+   */
+  getDirHandle: function(username) {
     if (this._rootDirHandle) return Promise.resolve(this._rootDirHandle);
+    var key = username ? ('dirHandle_' + username) : 'dirHandle';
     return this._openDB().then(function(db) {
       return new Promise(function(resolve, reject) {
         var tx = db.transaction(this._DB_STORE, 'readonly');
-        var getReq = tx.objectStore(this._DB_STORE).get('dirHandle');
+        var getReq = tx.objectStore(this._DB_STORE).get(key);
         getReq.onsuccess = function() {
           var record = getReq.result;
           if (!record) { resolve(null); return; }
           if (Date.now() - record.savedAt > this._EXPIRE_DAYS * 24 * 60 * 60 * 1000) {
             // 过期，清除
             var tx2 = db.transaction(this._DB_STORE, 'readwrite');
-            tx2.objectStore(this._DB_STORE).delete('dirHandle');
+            tx2.objectStore(this._DB_STORE).delete(key);
             resolve(null);
             return;
           }
@@ -124,13 +131,17 @@ var FileAccess = {
   },
 
   /** 清除所有缓存和 IndexedDB 句柄 */
-  clearAll: function() {
+  clearAll: function(username) {
     this._rootDirHandle = null;
     this._encryptedConfig = null;
+    var keysToDelete = username
+      ? ['dirHandle', 'dirHandle_' + username]
+      : ['dirHandle'];
     return this._openDB().then(function(db) {
       return new Promise(function(resolve) {
         var tx = db.transaction(this._DB_STORE, 'readwrite');
-        tx.objectStore(this._DB_STORE).delete('dirHandle');
+        var store = tx.objectStore(this._DB_STORE);
+        keysToDelete.forEach(function(key) { store.delete(key); });
         tx.oncomplete = function() { resolve(); };
         tx.onerror = function() { resolve(); };
       }.bind(this));

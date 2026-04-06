@@ -11,6 +11,7 @@ var Settings = {
     document.getElementById('settings-overlay').classList.add('open');
     document.getElementById('settings-status').textContent = '';
     document.getElementById('settings-status').className = 'settings-status';
+    this._updateUserInfo();
     this._updateWorkPathStatus();
     this._loadExistingConfig();
   },
@@ -112,17 +113,54 @@ var Settings = {
     }
   },
 
+  // ==================== 用户信息 ====================
+
+  _updateUserInfo: function() {
+    var infoEl = document.getElementById('current-user-info');
+    var logoutBtn = document.getElementById('btn-logout');
+
+    if (state.currentUser && state.currentUser.role !== 'local') {
+      infoEl.style.display = 'block';
+      var roleText = state.currentUser.role === 'owner' ? 'Owner' : 'User';
+      infoEl.textContent = 'Logged in as: ' + state.currentUser.username + ' (' + roleText + ')';
+      logoutBtn.style.display = 'inline-block';
+    } else if (state.isLocalMode) {
+      infoEl.style.display = 'block';
+      infoEl.textContent = 'Local offline mode';
+      logoutBtn.style.display = 'none';
+    } else {
+      infoEl.style.display = 'none';
+      logoutBtn.style.display = 'none';
+    }
+  },
+
   // ==================== 表单操作 ====================
 
   _fillForm: function(config) {
     document.getElementById('cfg-owner').value = config.owner || '';
     document.getElementById('cfg-repo').value = config.repo || '';
-    document.getElementById('cfg-path').value = config.path || 'data/plandata.json';
     document.getElementById('cfg-branch').value = config.branch || 'main';
     document.getElementById('cfg-token').value = config.token || '';
     if (config.workDirName) {
       document.getElementById('cfg-workpath').value = config.workDirName;
     }
+
+    // 非主人用户：显示 username 字段，隐藏 file path 字段
+    var isOwner = !state.currentUser || state.currentUser.role === 'owner';
+    var usernameGroup = document.getElementById('settings-username-group');
+    var pathGroup = document.getElementById('settings-path-group');
+
+    if (!isOwner && config.username) {
+      usernameGroup.style.display = 'block';
+      document.getElementById('cfg-username').value = config.username;
+      pathGroup.style.display = 'none';
+      document.getElementById('cfg-path').value = config.path || 'data/plandata.json';
+    } else {
+      usernameGroup.style.display = 'none';
+      pathGroup.style.display = 'block';
+      document.getElementById('cfg-path').value = config.path || 'data/plandata.json';
+    }
+
     this._updateWorkPathStatus();
   },
 
@@ -135,16 +173,32 @@ var Settings = {
   },
 
   _getFormValues: function() {
-    return {
+    var values = {
       owner: document.getElementById('cfg-owner').value.trim(),
       repo: document.getElementById('cfg-repo').value.trim(),
-      path: document.getElementById('cfg-path').value.trim() || 'data/plandata.json',
       branch: document.getElementById('cfg-branch').value.trim() || 'main',
       token: document.getElementById('cfg-token').value.trim(),
       workDirName: FileAccess._rootDirHandle
         ? FileAccess._rootDirHandle.name
         : document.getElementById('cfg-workpath').value.trim()
     };
+
+    var isOwner = !state.currentUser || state.currentUser.role === 'owner';
+    if (isOwner) {
+      values.path = document.getElementById('cfg-path').value.trim() || 'data/plandata.json';
+    } else {
+      values.path = 'data/plandata.json'; // 非主人用户固定路径
+      values.username = state.currentUser.username;
+      values.role = state.currentUser.role;
+    }
+
+    // 主人保存时补充 username/role 字段
+    if (isOwner) {
+      values.username = state.currentUser ? state.currentUser.username : 'owner';
+      values.role = 'owner';
+    }
+
+    return values;
   },
 
   // ==================== 测试 & 保存 ====================

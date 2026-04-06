@@ -12,7 +12,9 @@ var state = {
   selectedPlanSetId: null,
   dataLoaded: false,
   dirty: false,
-  dataSource: 'remote'
+  dataSource: 'remote',
+  currentUser: null,    // { username, role, configPath } — 当前登录用户
+  isLocalMode: false    // true 表示 file:// 离线模式
 };
 
 var confirmCallback = null;

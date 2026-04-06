@@ -155,18 +155,31 @@
 
   render(); // 先渲染空状态
 
-  // 1. 尝试从 IndexedDB 获取工作目录句柄
-  FileAccess.getDirHandle().then(function(handle) {
-    if (!handle) {
-      // 无本地句柄 → 尝试 GitHub Pages 回退
-      tryLoadFromWeb();
-      return;
-    }
-    // 有句柄 → 尝试从本地加载
-    tryLoadFromLocal();
-  }).catch(function() {
-    tryLoadFromWeb();
+  // ---- 登录/注册按钮绑定 ----
+  document.getElementById('btn-login').addEventListener('click', function() {
+    Auth.handleLogin();
   });
+  document.getElementById('login-password').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') Auth.handleLogin();
+  });
+  document.getElementById('btn-show-register').addEventListener('click', function() {
+    Auth.showRegisterScreen();
+  });
+  document.getElementById('btn-register-submit').addEventListener('click', function() {
+    Auth.handleRegister();
+  });
+  document.getElementById('btn-register-back').addEventListener('click', function() {
+    Auth.showLoginFromRegister();
+  });
+  document.getElementById('btn-use-local').addEventListener('click', function() {
+    Auth.enterLocalMode();
+  });
+  document.getElementById('btn-logout').addEventListener('click', function() {
+    Auth.logout();
+  });
+
+  // ---- 启动认证流程 ----
+  Auth.init();
 })();
 
 // ==================== 数据加载流程 ====================
@@ -334,6 +347,16 @@ function fallbackToLocal() {
     render();
   });
 }
+
+// 暴露给 auth.js 等外部模块使用的全局函数
+window._app = {
+  applyRemoteData: applyRemoteData,
+  fallbackToLocal: fallbackToLocal,
+  updateToggleUI: updateToggleUI,
+  render: render,
+  showToast: showToast,
+  ensureWorkDirHandle: ensureWorkDirHandle
+};
 
 // ==================== Save Local / Save Remote ====================
 
