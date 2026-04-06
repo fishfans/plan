@@ -94,3 +94,22 @@ GitHub相关需要配置的参数存储在js/config.json里面才对，不是通
 
 3. 我知道了，应该是项目中有一个data目录，这个目录放config.js 和submit推送到GitHub仓库的数据。一但用户输入仓库名字，用户名，token这些信息，测试成功后就马上把config.js git 到仓库的data目录里面！这样子部署到GitHub page后，其他人通过公网访问的时候，点击submit就需要加载这个data/config.js文件，然后让他输入密码解密，
 也就可以修改到仓库data里面的数据文件了！我们离线使用file协议的时候，也是差不多逻辑，只不过多了一个修改config.js 内容和重新设置密码的操作。
+
+# 梳理一下使用场景
+## 写场景
+1. 用户点击设置填写GitHub仓库信息，测试连接，保存配置，输入密码，生成加密文件config.js。增加一个配置项目，本地工作路径，让用户自己点击按钮选着授权某个
+他喜欢的路径，把句柄存储在indexdb，设置7天过期的策略。只有当所有配置项都填好，才生成文件。
+2. 把config.js保存到配置好的本地工作路径，然后推送config.js 到GitHub仓库的data/config.js
+3. 用户回到编辑页面进行编辑，直接创建plan set 或者 import 文件
+4. 用户点击 save 会把数据文件保存到工作路径。点击submit会把数据文件先保存到工作路径，再推送到GitHub仓库的data/plandata.json。
+## 读场景
+1. 用户本地使用file协议打开html文件或者使用https协议打开，即使无论离线还是在线打开index.html,都首先从indexdb获取句柄和授权，
+读取config.js，让用户输入密码，解密读取github仓库的data/plandata.json进行展示先，编辑也首先居于这份数据
+2. 当由于网络问题，离线状态 file协议打开html文件时，从indexdb获取句柄和授权，才读取本地工作路径的plandata.json进行展示，编辑基于这份数据，此时不需要密码
+3. 顶部增加一个切换按钮，用户也可以手动点击切换读取github仓库数据还是读取本地工作路径的数据
+## 按钮修改
+save 改为 save local
+submit 改为 save remote
+
+
+

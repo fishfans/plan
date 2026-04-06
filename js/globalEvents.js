@@ -11,7 +11,7 @@
     }
   });
 
-  // 关闭浏览器警告（仅在数据有修改且未保存时）
+  // 关闭浏览器警告
   window.addEventListener('beforeunload', function(e) {
     if (state.dirty) {
       e.preventDefault();
@@ -31,10 +31,10 @@
       if (Settings.isOpen) Settings.close();
       return;
     }
-    // Ctrl+S / Cmd+S 快捷保存
+    // Ctrl+S / Cmd+S → Save Local
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
-      handleSave();
+      handleSaveLocal();
       return;
     }
     if (e.target.getAttribute('contenteditable') === 'true' || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -57,14 +57,18 @@
   document.getElementById('btn-add-set').addEventListener('click', addPlanSet);
   document.getElementById('btn-open-tag').addEventListener('click', openTagModal);
 
-  // ---- Save / Submit 按钮 ----
-  document.getElementById('btn-save').addEventListener('click', handleSave);
-  document.getElementById('btn-submit').addEventListener('click', handleSubmit);
+  // ---- Save Local / Save Remote / Toggle ----
+  document.getElementById('btn-save-local').addEventListener('click', handleSaveLocal);
+  document.getElementById('btn-save-remote').addEventListener('click', handleSaveRemote);
+  document.getElementById('btn-toggle-source').addEventListener('click', toggleDataSource);
 
   // ---- Settings 按钮 ----
   document.getElementById('btn-settings').addEventListener('click', function() {
     Settings.open();
   });
+
+  // ---- Grant Access 按钮 ----
+  document.getElementById('btn-grant-access').addEventListener('click', grantAccess);
 
   // ---- 底部日期分页 ----
   document.querySelector('[data-action="prev-date"]').addEventListener('click', function() { changeDate(-1); });
@@ -138,60 +142,215 @@
   document.getElementById('btn-settings-clear').addEventListener('click', function() {
     Settings.clearConfig();
   });
+  document.getElementById('btn-settings-pickdir').addEventListener('click', function() {
+    Settings.pickDir();
+  });
 
-  // ---- 初始化 ----
+  // ==================== 初始化 ====================
   var now = new Date();
   var y = now.getFullYear();
   var m = ('0' + (now.getMonth()+1)).slice(-2);
   var d = ('0' + now.getDate()).slice(-2);
   state.currentDate = y + '-' + m + '-' + d;
 
-  // 1. 尝试从 localStorage 加载缓存数据
-  Storage.loadPlanData();
-  render();
+  render(); // 先渲染空状态
 
-  // 2. 异步尝试加载 config.json
-  FileAccess.loadConfigFile().then(function(configText) {
-    if (configText) {
-      // 配置文件存在 → 弹窗让用户输入密码以解锁并加载远程数据
-      tryUnlockAndLoad();
+  // 1. 尝试从 IndexedDB 获取工作目录句柄
+  FileAccess.getDirHandle().then(function(handle) {
+    if (!handle) {
+      // 无本地句柄 → 尝试 GitHub Pages 回退
+      tryLoadFromWeb();
+      return;
     }
-    // 否则静默进入离线模式
+    // 有句柄 → 尝试从本地加载
+    tryLoadFromLocal();
+  }).catch(function() {
+    tryLoadFromWeb();
   });
 })();
 
-// ==================== Save / Submit 处理 ====================
+// ==================== 数据加载流程 ====================
 
-/** 保存到 localStorage */
-function handleSave() {
+/** 尝试从本地工作路径加载 config → 密码 → GitHub */
+function tryLoadFromLocal() {
+  FileAccess.readLocalFile('config.json').then(function(configText) {
+    if (configText) {
+      FileAccess.updateConfigCache(configText);
+      promptPasswordAndLoad(function() {
+        GitHub.fetchPlanData().then(function(data) {
+          if (data) {
+            applyRemoteData(data);
+            showToast('Loaded from GitHub!');
+          } else {
+            // GitHub 无数据 → 回退本地
+            fallbackToLocal();
+          }
+        }).catch(function(err) {
+          showToast('GitHub failed, loading local...');
+          fallbackToLocal();
+        });
+      }, function() {
+        // 用户跳过密码 → 本地模式
+        fallbackToLocal();
+      });
+    } else {
+      // 无 config → 直接读本地数据（不需要密码）
+      fallbackToLocal();
+    }
+  }).catch(function(e) {
+    if (e.message === 'Permission denied') {
+      document.getElementById('access-prompt').style.display = 'block';
+    } else {
+      fallbackToLocal();
+    }
+  });
+}
+
+/** 授权工作目录访问权限 */
+function grantAccess() {
+  var btn = document.getElementById('btn-grant-access');
+  btn.textContent = 'Requesting...';
+  btn.disabled = true;
+  FileAccess._rootDirHandle.requestPermission({ mode: 'readwrite' }).then(function(perm) {
+    btn.textContent = 'Grant Workspace Access';
+    btn.disabled = false;
+    if (perm === 'granted') {
+      document.getElementById('access-prompt').style.display = 'none';
+      tryLoadFromLocal();
+    } else {
+      showToast('Permission denied');
+    }
+  }).catch(function() {
+    btn.textContent = 'Grant Workspace Access';
+    btn.disabled = false;
+    showToast('Failed to request permission');
+  });
+}
+
+/** GitHub Pages 回退：fetch data/config.json */
+function tryLoadFromWeb() {
+  fetch('data/config.json').then(function(res) {
+    if (!res.ok) return null;
+    return res.text();
+  }).then(function(configText) {
+    if (configText) {
+      FileAccess.updateConfigCache(configText);
+      promptPasswordAndLoad(function() {
+        GitHub.fetchPlanData().then(function(data) {
+          if (data) {
+            applyRemoteData(data);
+            showToast('Loaded from GitHub!');
+          } else {
+            render();
+          }
+        }).catch(function(err) {
+          showToast('Failed to load: ' + (err.message || err));
+          render();
+        });
+      }, function() {
+        render();
+      });
+    } else {
+      render();
+    }
+  }).catch(function() {
+    render();
+  });
+}
+
+/** 弹出密码框，成功后执行 onOk 回调 */
+function promptPasswordAndLoad(onOk, onCancel) {
+  PasswordModal.show({
+    title: 'Unlock GitHub Sync',
+    message: 'Enter password to load data from GitHub',
+    mode: 'unlock',
+    cancelText: 'Skip (Offline)',
+    onOk: function(password) {
+      GitHub.unlock(password).then(function() {
+        if (onOk) onOk();
+      }).catch(function(err) {
+        showToast('Wrong password!');
+        // 允许重试
+        setTimeout(function() {
+          promptPasswordAndLoad(onOk, onCancel);
+        }, 500);
+      });
+    },
+    onCancel: function() {
+      if (onCancel) onCancel();
+    }
+  });
+}
+
+/** 应用远程数据到 state 并渲染 */
+function applyRemoteData(data) {
+  state.tags = data.tags || state.tags;
+  state.dates = data.dates || state.dates;
+  state.currentDate = data.currentDate || state.currentDate;
+  state.dataLoaded = true;
+  state.dirty = false;
+  state.dataSource = 'remote';
+  // 缓存到本地
+  if (FileAccess.hasValidHandle()) {
+    Storage.saveLocal().catch(function() {});
+  }
+  updateToggleUI();
+  render();
+}
+
+/** 回退到本地工作目录数据 */
+function fallbackToLocal() {
+  if (!FileAccess.hasValidHandle()) {
+    render();
+    return;
+  }
+  Storage.loadLocalPlanData().then(function(loaded) {
+    if (loaded) {
+      state.dataSource = 'local';
+      updateToggleUI();
+    }
+    render();
+  });
+}
+
+// ==================== Save Local / Save Remote ====================
+
+function handleSaveLocal() {
   if (!hasAnyData()) {
     showToast('No data to save');
     return;
   }
-  Storage.savePlanData();
-  showToast('Saved!');
-}
-
-/** 提交到 GitHub */
-function handleSubmit() {
-  if (!hasAnyData()) {
-    showToast('No data to submit');
+  if (!FileAccess.hasValidHandle()) {
+    showToast('No local work path configured. Click Settings.');
     return;
   }
+  Storage.saveLocal().then(function() {
+    showToast('Saved locally!');
+  }).catch(function(e) {
+    if (e.message === 'Permission denied') {
+      showToast('Permission denied. Try again.');
+    } else {
+      showToast('Save failed: ' + e.message);
+    }
+  });
+}
 
-  // 确保配置已加载
-  var self = this;
-  var doSubmitWithConfig = function() {
-    // 如果内存中没有密码，需要先输入密码解锁
+function handleSaveRemote() {
+  if (!hasAnyData()) {
+    showToast('No data to save');
+    return;
+  }
+  // 需要先有 GitHub 凭据
+  var doSave = function() {
     if (!GitHub.hasPassword()) {
       PasswordModal.show({
         title: 'Enter Password',
-        message: 'Enter password to submit to GitHub',
+        message: 'Enter password to push to GitHub',
         mode: 'unlock',
         cancelText: 'Cancel',
         onOk: function(password) {
           GitHub.unlock(password).then(function() {
-            doSubmit();
+            doRemoteSave();
           }).catch(function() {
             showToast('Wrong password!');
           });
@@ -199,71 +358,102 @@ function handleSubmit() {
       });
       return;
     }
-    doSubmit();
+    doRemoteSave();
   };
 
-  // 检查是否需要先加载配置
   if (FileAccess.hasConfig()) {
-    doSubmitWithConfig();
+    doSave();
   } else {
-    // 配置还没加载，尝试重新加载
-    FileAccess.loadConfigFile().then(function(text) {
-      if (text) {
-        doSubmitWithConfig();
+    showToast('No GitHub config found. Click Settings to configure.');
+  }
+}
+
+function doRemoteSave() {
+  if (FileAccess.hasValidHandle()) {
+    Storage.saveRemote().then(function() {
+      showToast('Saved locally & pushed to GitHub!');
+    }).catch(function(e) {
+      if (!state.dirty) {
+        showToast('Saved locally, but push failed: ' + e.message);
       } else {
-        showToast('No GitHub config found. Click Settings to configure.');
+        showToast('Failed: ' + e.message);
       }
+    });
+  } else {
+    // 无本地路径 → 只推 GitHub
+    GitHub.submitPlanData().then(function() {
+      state.dirty = false;
+      Storage._updateDirtyIndicator();
+      showToast('Pushed to GitHub!');
+    }).catch(function(e) {
+      showToast('Push failed: ' + e.message);
     });
   }
 }
 
-/** 执行 GitHub 提交 */
-function doSubmit() {
-  showToast('Submitting to GitHub...');
-  GitHub.submitPlanData().then(function() {
-    state.dirty = false;
-    Storage._updateDirtyIndicator();
-    // 提交成功后也更新 localStorage 缓存
-    Storage.savePlanData();
-    showToast('Submitted to GitHub!');
-  }).catch(function(e) {
-    showToast('Submit failed: ' + e.message);
-  });
+// ==================== 数据源切换 ====================
+
+function toggleDataSource() {
+  if (state.dataSource === 'remote') {
+    // 切换到本地
+    if (!FileAccess.hasValidHandle()) {
+      showToast('No local work path configured');
+      return;
+    }
+    Storage.loadLocalPlanData().then(function(loaded) {
+      if (loaded) {
+        state.dataSource = 'local';
+        updateToggleUI();
+        render();
+        showToast('Switched to local data');
+      } else {
+        showToast('No local data found');
+      }
+    }).catch(function(e) {
+      showToast('Failed: ' + e.message);
+    });
+  } else {
+    // 切换到远程
+    var doSwitch = function() {
+      GitHub.fetchPlanData().then(function(data) {
+        if (data) {
+          applyRemoteData(data);
+          showToast('Switched to GitHub data');
+        } else {
+          showToast('No remote data found');
+        }
+      }).catch(function(e) {
+        showToast('Failed: ' + e.message);
+      });
+    };
+
+    if (!GitHub.hasPassword()) {
+      PasswordModal.show({
+        title: 'Enter Password',
+        message: 'Enter password to load from GitHub',
+        mode: 'unlock',
+        cancelText: 'Cancel',
+        onOk: function(password) {
+          GitHub.unlock(password).then(function() { doSwitch(); })
+            .catch(function() { showToast('Wrong password!'); });
+        }
+      });
+    } else {
+      doSwitch();
+    }
+  }
 }
 
-/** 页面加载时尝试解锁并从 GitHub 加载数据 */
-function tryUnlockAndLoad() {
-  PasswordModal.show({
-    title: 'Unlock GitHub Sync',
-    message: 'Enter password to load data from GitHub',
-    mode: 'unlock',
-    cancelText: 'Skip',
-    onOk: function(password) {
-      GitHub.unlock(password).then(function(config) {
-        showToast('Unlocked! Loading from GitHub...');
-        return GitHub.fetchPlanData();
-      }).then(function(data) {
-        if (data) {
-          // 远程数据覆盖本地
-          state.tags = data.tags || state.tags;
-          state.dates = data.dates || state.dates;
-          state.currentDate = data.currentDate || state.currentDate;
-          state.dataLoaded = true;
-          state.dirty = false;
-          // 缓存到 localStorage
-          Storage.savePlanData();
-          render();
-          showToast('Loaded from GitHub!');
-        } else {
-          showToast('No remote data found, using local cache');
-        }
-      }).catch(function(err) {
-        showToast('Failed to load: ' + (err.message || err));
-        // 密码错误，允许重试
-        setTimeout(function() {
-          tryUnlockAndLoad();
-        }, 500);
-      });
-    }
-  });
+function updateToggleUI() {
+  var btn = document.getElementById('btn-toggle-source');
+  if (!btn) return;
+  if (state.dataSource === 'remote') {
+    btn.textContent = 'Remote';
+    btn.style.background = '#e8f4fd';
+    btn.style.borderColor = '#3498db';
+  } else {
+    btn.textContent = 'Local';
+    btn.style.background = '#f0f8e8';
+    btn.style.borderColor = '#27ae60';
+  }
 }

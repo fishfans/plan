@@ -11,7 +11,8 @@ var state = {
   currentDate: '',
   selectedPlanSetId: null,
   dataLoaded: false,
-  dirty: false
+  dirty: false,
+  dataSource: 'remote'
 };
 
 var confirmCallback = null;

@@ -508,8 +508,8 @@ html, body {
 }
 .toast.show { opacity: 1; }
 
-/* ========== Save 按钮脏数据指示 ========== */
-#btn-save.dirty {
+/* ========== Save Local 按钮脏数据指示 ========== */
+#btn-save-local.dirty {
   background: #fff3cd;
   border-color: #ffc107;
 }
@@ -672,12 +672,17 @@ html, body {
       </div>
     </div>
     <span style="border-left:2px solid #ccc;height:24px;margin:0 2px;"></span>
-    <button id="btn-save" class="sketch-btn">Save</button>
-    <button id="btn-submit" class="sketch-btn">Submit</button>
+    <button id="btn-toggle-source" class="sketch-btn" title="Switch data source">Remote</button>
+    <button id="btn-save-local" class="sketch-btn">Save Local</button>
+    <button id="btn-save-remote" class="sketch-btn">Save Remote</button>
   </div>
 
   <!-- 主内容区 -->
   <div id="main-content">
+    <div id="access-prompt" style="display:none;text-align:center;padding:20px;">
+      <p style="margin-bottom:10px;color:var(--color-light);">Grant access to your local workspace to load data</p>
+      <button class="sketch-btn" id="btn-grant-access">Grant Workspace Access</button>
+    </div>
     <div id="plan-list"></div>
     <div id="empty-state" style="display:none;">
       <div class="big">~ sketch your plan ~</div>
@@ -791,6 +796,14 @@ html, body {
       <label>Personal Access Token</label>
       <input type="password" id="cfg-token" placeholder="ghp_xxxxxxxxxxxx">
       <div class="hint">GitHub Token with repo scope &middot; <a href="https://github.com/settings/tokens" target="_blank" style="color:var(--color-tag-normal);">Generate Token</a></div>
+    </div>
+    <div class="settings-group">
+      <label>Local Work Path</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="text" id="cfg-workpath" readonly placeholder="Click 'Select' to choose..." style="flex:1;cursor:default;color:var(--color-light);">
+        <button class="sketch-btn" id="btn-settings-pickdir">Select</button>
+      </div>
+      <div class="hint" id="workpath-status">No path selected</div>
     </div>
 
     <div id="settings-status" class="settings-status"></div>
