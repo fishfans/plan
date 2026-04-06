@@ -1,6 +1,6 @@
 // ==================== GitHub 设置页面 ====================
 // 全屏覆盖层，用于配置 GitHub 仓库信息 + 本地工作路径
-// 加密配置保存到本地工作路径 + 推送到 GitHub 仓库 data/config.json
+// 已登录用户 → 保存配置；未登录用户 → 注册流程
 
 var Settings = {
 
@@ -11,7 +11,7 @@ var Settings = {
     document.getElementById('settings-overlay').classList.add('open');
     document.getElementById('settings-status').textContent = '';
     document.getElementById('settings-status').className = 'settings-status';
-    this._updateUserInfo();
+    this._updateUI();
     this._updateWorkPathStatus();
     this._loadExistingConfig();
   },
@@ -19,6 +19,48 @@ var Settings = {
   close: function() {
     this.isOpen = false;
     document.getElementById('settings-overlay').classList.remove('open');
+  },
+
+  // ==================== UI 状态 ====================
+
+  _updateUI: function() {
+    var infoEl = document.getElementById('current-user-info');
+    var logoutBtn = document.getElementById('btn-logout');
+    var saveBtn = document.getElementById('btn-settings-save');
+    var usernameInput = document.getElementById('cfg-username');
+    var pathGroup = document.getElementById('settings-path-group');
+
+    if (state.currentUser && state.currentUser.role !== 'local') {
+      // 已登录 → 显示用户信息，Save Config
+      infoEl.style.display = 'block';
+      var roleText = state.currentUser.role === 'owner' ? 'Owner' : 'User';
+      infoEl.textContent = 'Logged in as: ' + state.currentUser.username + ' (' + roleText + ')';
+      logoutBtn.style.display = 'inline-block';
+      saveBtn.textContent = 'Save Config';
+
+      // username 字段：主人可编辑，用户只读
+      document.getElementById('settings-username-group').style.display = 'block';
+      if (state.currentUser.role === 'owner') {
+        usernameInput.removeAttribute('readonly');
+        usernameInput.style.color = '';
+      } else {
+        usernameInput.setAttribute('readonly', true);
+        usernameInput.style.color = 'var(--color-light)';
+      }
+      // 非主人隐藏 file path（自动用 ${username}/plandata.json）
+      pathGroup.style.display = state.currentUser.role === 'owner' ? 'block' : 'none';
+    } else {
+      // 未登录 → Register 模式
+      infoEl.style.display = state.isLocalMode ? 'block' : 'none';
+      if (state.isLocalMode) infoEl.textContent = 'Local offline mode';
+      logoutBtn.style.display = 'none';
+      saveBtn.textContent = 'Register';
+      // 注册时 username 可编辑，file path 隐藏（自动生成）
+      document.getElementById('settings-username-group').style.display = 'block';
+      usernameInput.removeAttribute('readonly');
+      usernameInput.style.color = '';
+      pathGroup.style.display = 'none';
+    }
   },
 
   // ==================== 工作路径选择 ====================
@@ -47,7 +89,6 @@ var Settings = {
       el.textContent = 'Path: ' + FileAccess._rootDirHandle.name;
       el.style.color = 'var(--color-tag-low)';
     } else if (input.value) {
-      // 有 workDirName（来自 config）但无句柄 → 提示重新选择
       el.textContent = input.value + ' (re-select)';
       el.style.color = 'var(--color-light)';
     } else {
@@ -83,7 +124,6 @@ var Settings = {
       });
       return;
     }
-    // 内存没有配置 → 尝试从工作目录读取
     if (FileAccess.hasValidHandle()) {
       var self = this;
       FileAccess.readLocalFile('config.json').then(function(text) {
@@ -113,27 +153,6 @@ var Settings = {
     }
   },
 
-  // ==================== 用户信息 ====================
-
-  _updateUserInfo: function() {
-    var infoEl = document.getElementById('current-user-info');
-    var logoutBtn = document.getElementById('btn-logout');
-
-    if (state.currentUser && state.currentUser.role !== 'local') {
-      infoEl.style.display = 'block';
-      var roleText = state.currentUser.role === 'owner' ? 'Owner' : 'User';
-      infoEl.textContent = 'Logged in as: ' + state.currentUser.username + ' (' + roleText + ')';
-      logoutBtn.style.display = 'inline-block';
-    } else if (state.isLocalMode) {
-      infoEl.style.display = 'block';
-      infoEl.textContent = 'Local offline mode';
-      logoutBtn.style.display = 'none';
-    } else {
-      infoEl.style.display = 'none';
-      logoutBtn.style.display = 'none';
-    }
-  },
-
   // ==================== 表单操作 ====================
 
   _fillForm: function(config) {
@@ -141,24 +160,11 @@ var Settings = {
     document.getElementById('cfg-repo').value = config.repo || '';
     document.getElementById('cfg-branch').value = config.branch || 'main';
     document.getElementById('cfg-token').value = config.token || '';
+    document.getElementById('cfg-username').value = config.username || '';
+    document.getElementById('cfg-path').value = config.path || 'data/plandata.json';
+
     if (config.workDirName) {
       document.getElementById('cfg-workpath').value = config.workDirName;
-    }
-
-    // 非主人用户：显示 username 字段，隐藏 file path 字段
-    var isOwner = !state.currentUser || state.currentUser.role === 'owner';
-    var usernameGroup = document.getElementById('settings-username-group');
-    var pathGroup = document.getElementById('settings-path-group');
-
-    if (!isOwner && config.username) {
-      usernameGroup.style.display = 'block';
-      document.getElementById('cfg-username').value = config.username;
-      pathGroup.style.display = 'none';
-      document.getElementById('cfg-path').value = config.path || 'data/plandata.json';
-    } else {
-      usernameGroup.style.display = 'none';
-      pathGroup.style.display = 'block';
-      document.getElementById('cfg-path').value = config.path || 'data/plandata.json';
     }
 
     this._updateWorkPathStatus();
@@ -170,10 +176,12 @@ var Settings = {
     document.getElementById('cfg-path').value = 'data/plandata.json';
     document.getElementById('cfg-branch').value = 'main';
     document.getElementById('cfg-token').value = '';
+    document.getElementById('cfg-username').value = '';
   },
 
   _getFormValues: function() {
-    var values = {
+    return {
+      username: document.getElementById('cfg-username').value.trim(),
       owner: document.getElementById('cfg-owner').value.trim(),
       repo: document.getElementById('cfg-repo').value.trim(),
       branch: document.getElementById('cfg-branch').value.trim() || 'main',
@@ -182,26 +190,9 @@ var Settings = {
         ? FileAccess._rootDirHandle.name
         : document.getElementById('cfg-workpath').value.trim()
     };
-
-    var isOwner = !state.currentUser || state.currentUser.role === 'owner';
-    if (isOwner) {
-      values.path = document.getElementById('cfg-path').value.trim() || 'data/plandata.json';
-    } else {
-      values.path = 'data/plandata.json'; // 非主人用户固定路径
-      values.username = state.currentUser.username;
-      values.role = state.currentUser.role;
-    }
-
-    // 主人保存时补充 username/role 字段
-    if (isOwner) {
-      values.username = state.currentUser ? state.currentUser.username : 'owner';
-      values.role = 'owner';
-    }
-
-    return values;
   },
 
-  // ==================== 测试 & 保存 ====================
+  // ==================== 测试连接 ====================
 
   testConnection: function() {
     var values = this._getFormValues();
@@ -224,8 +215,19 @@ var Settings = {
     });
   },
 
-  /** 保存配置：检查所有字段 → 测试连接 → 密码 → 加密 → 本地 + GitHub */
-  save: function() {
+  // ==================== 保存/注册 ====================
+
+  /** 保存按钮点击：根据当前状态决定是保存配置还是注册 */
+  saveOrRegister: function() {
+    if (state.currentUser && state.currentUser.role !== 'local') {
+      this._saveConfig();
+    } else {
+      this._register();
+    }
+  },
+
+  /** 已登录用户保存配置（用当前密码重新加密） */
+  _saveConfig: function() {
     var values = this._getFormValues();
     if (!values.owner || !values.repo || !values.token) {
       showToast('Please fill in Owner, Repo and Token');
@@ -242,29 +244,110 @@ var Settings = {
 
     var self = this;
     GitHub.testConnection(values).then(function() {
-      statusEl.textContent = 'Connected! Please set a password...';
+      // 补充 path 和 role 字段
+      var isOwner = state.currentUser.role === 'owner';
+      if (isOwner) {
+        values.path = document.getElementById('cfg-path').value.trim() || 'data/plandata.json';
+        values.role = 'owner';
+      } else {
+        values.path = values.username + '/plandata.json';
+        values.role = 'user';
+      }
+
+      // 用内存中的当前密码重新加密并推送（不需要弹窗）
+      if (GitHub.hasPassword()) {
+        var password = GitHub._memoryPassword;
+        Storage.saveEncryptedConfig(values, password).then(function() {
+          GitHub._config = values;
+          showToast('Config saved!');
+          self.close();
+        }).catch(function(e) {
+          showToast('Failed to save: ' + e.message);
+        });
+      } else {
+        // 没有内存密码（不应该发生，但兜底处理）
+        statusEl.textContent = 'Please re-enter your password';
+        statusEl.className = 'settings-status error';
+      }
+    }).catch(function(e) {
+      statusEl.textContent = 'Connection failed: ' + e.message;
+      statusEl.className = 'settings-status error';
+    });
+  },
+
+  /** 未登录用户注册流程 */
+  _register: function() {
+    var values = this._getFormValues();
+    if (!values.username) {
+      showToast('Please fill in Username');
+      return;
+    }
+    var usernameErr = UserRegistry.validateUsername(values.username);
+    if (usernameErr) {
+      showToast(usernameErr);
+      return;
+    }
+    if (!values.owner || !values.repo || !values.token) {
+      showToast('Please fill in Owner, Repo and Token');
+      return;
+    }
+
+    var statusEl = document.getElementById('settings-status');
+    statusEl.textContent = 'Testing connection...';
+    statusEl.className = 'settings-status loading';
+
+    var self = this;
+    var username = values.username;
+
+    GitHub.testConnection(values).then(function() {
+      statusEl.textContent = 'Connected! Set your account password...';
       statusEl.className = 'settings-status success';
 
+      // Step 1: 设置用户密码
       PasswordModal.show({
-        title: 'Set Encryption Password',
-        message: 'This password will encrypt your GitHub config.\nYou will need it each time you open the page.',
+        title: 'Set Your Password',
+        message: 'This password will encrypt your config.\nYou need it to login later.',
         mode: 'set',
         hideCancel: true,
-        onOk: function(password) {
-          Storage.saveEncryptedConfig(values, password).then(function() {
-            GitHub.setMemoryPassword(password);
-            GitHub._config = values;
-            showToast('Config saved!');
-            self.close();
-          }).catch(function(e) {
-            showToast('Failed to save: ' + e.message);
+        onOk: function(userPassword) {
+          // Step 2: 输入主人密码验证
+          PasswordModal.show({
+            title: 'Owner Verification',
+            message: 'Enter the project owner password to authorize registration',
+            mode: 'unlock',
+            cancelText: 'Cancel',
+            onOk: function(ownerPassword) {
+              statusEl.textContent = 'Registering...';
+              statusEl.className = 'settings-status loading';
+
+              Auth.register({
+                username: username,
+                password: userPassword,
+                owner: values.owner,
+                repo: values.repo,
+                token: values.token
+              }, ownerPassword).then(function() {
+                showToast('Registered as "' + username + '"!');
+                self.close();
+                // 注册成功后自动登录
+                Auth.login(username, userPassword).catch(function(err) {
+                  showToast('Registered, but auto-login failed: ' + err.message);
+                });
+              }).catch(function(err) {
+                statusEl.textContent = 'Registration failed: ' + (err.message || err);
+                statusEl.className = 'settings-status error';
+              });
+            },
+            onCancel: function() {
+              statusEl.textContent = 'Registration cancelled';
+              statusEl.className = 'settings-status error';
+            }
           });
         }
       });
     }).catch(function(e) {
       statusEl.textContent = 'Connection failed: ' + e.message;
       statusEl.className = 'settings-status error';
-      showToast('Connection failed: ' + e.message);
     });
   },
 

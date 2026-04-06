@@ -750,87 +750,14 @@ html, body {
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
-<!-- 登录 / 注册页面 (全屏覆盖) -->
-<div id="login-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--color-paper);z-index:300;align-items:center;justify-content:center;">
-  <div id="login-page" style="max-width:420px;margin:0 auto;padding:40px 16px;text-align:center;">
-
-    <!-- 登录表单 -->
-    <div id="login-form">
-      <h2 style="font-family:'Caveat',cursive;font-size:32px;margin-bottom:6px;">~ Plan Manager ~</h2>
-      <p style="font-size:14px;color:#888;margin-bottom:24px;">Another git for you</p>
-
-      <div class="settings-group">
-        <label>Username</label>
-        <input type="text" id="login-username" placeholder="Your username (leave empty for owner)" autocomplete="username">
-      </div>
-      <div class="settings-group">
-        <label>Password</label>
-        <input type="password" id="login-password" placeholder="Your password" autocomplete="current-password">
-      </div>
-
-      <div id="login-status" class="settings-status"></div>
-      <p id="login-local-hint" style="display:none;font-size:13px;color:#888;margin-bottom:8px;">Local file mode detected. Login to sync or use locally.</p>
-
-      <div class="settings-actions">
-        <button class="sketch-btn" id="btn-login">Login</button>
-        <button class="sketch-btn" id="btn-show-register">Register</button>
-      </div>
-
-      <div style="margin-top:16px;">
-        <button class="sketch-btn" id="btn-use-local" style="font-size:13px;opacity:0.7;">Use Locally (Import/Export only)</button>
-      </div>
-    </div>
-
-    <!-- 注册表单 (隐藏) -->
-    <div id="register-form" style="display:none;">
-      <h3 style="font-family:'Caveat',cursive;font-size:28px;margin-bottom:6px;">~ Register ~</h3>
-      <p style="font-size:14px;color:#888;margin-bottom:18px;">Create your account to sync via GitHub</p>
-
-      <div class="settings-group">
-        <label>Choose Username</label>
-        <input type="text" id="reg-username" placeholder="e.g. alice" autocomplete="off">
-      </div>
-      <div class="settings-group">
-        <label>Your Password</label>
-        <input type="password" id="reg-password" placeholder="Password for your account" autocomplete="new-password">
-      </div>
-      <div class="settings-group">
-        <label>Confirm Password</label>
-        <input type="password" id="reg-password-confirm" placeholder="Confirm your password" autocomplete="new-password">
-      </div>
-
-      <p style="font-size:13px;color:#888;margin:14px 0 8px;text-align:center;">--- Your GitHub Repo (for plan data) ---</p>
-
-      <div class="settings-group">
-        <label>GitHub Username / Organization</label>
-        <input type="text" id="reg-owner" placeholder="e.g. octocat" autocomplete="off">
-      </div>
-      <div class="settings-group">
-        <label>Repository Name</label>
-        <input type="text" id="reg-repo" placeholder="e.g. my-plan-data" autocomplete="off">
-      </div>
-      <div class="settings-group">
-        <label>Personal Access Token</label>
-        <input type="password" id="reg-token" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
-        <div class="hint">Token with repo scope &middot; <a href="https://github.com/settings/tokens" target="_blank" style="color:var(--color-tag-normal);">Generate Token</a></div>
-      </div>
-
-      <div id="register-status" class="settings-status"></div>
-
-      <div class="settings-actions">
-        <button class="sketch-btn" id="btn-register-submit">Register</button>
-        <button class="sketch-btn" id="btn-register-back">Back to Login</button>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- 密码输入弹窗 -->
+<!-- 密码输入弹窗 (启动登录 / 主人验证) -->
 <div id="password-overlay">
   <div id="password-box" class="sketch-box">
     <h3 id="password-title">~ Enter Password ~</h3>
     <p id="password-msg" style="font-size:16px;color:#888;margin-bottom:10px;text-align:center;">Enter password</p>
+    <div id="password-username-group" style="margin-bottom:14px;display:none;">
+      <input type="text" id="password-username" placeholder="Username (leave empty for owner)" class="password-field" autocomplete="username">
+    </div>
     <div style="margin-bottom:14px;">
       <input type="password" id="password-input" placeholder="Password..." class="password-field">
       <input type="password" id="password-confirm" placeholder="Confirm password..." class="password-field" style="display:none;">
@@ -855,10 +782,10 @@ html, body {
     </div>
     <div id="current-user-info" style="display:none;font-size:15px;margin-bottom:16px;color:var(--color-light);text-align:center;"></div>
 
-    <!-- 用户名字段（非主人显示，只读） -->
-    <div class="settings-group" id="settings-username-group" style="display:none;">
+    <!-- 用户名字段 -->
+    <div class="settings-group" id="settings-username-group">
       <label>Username</label>
-      <input type="text" id="cfg-username" readonly style="color:var(--color-light);">
+      <input type="text" id="cfg-username" placeholder="Your account username">
     </div>
 
     <div class="settings-group">

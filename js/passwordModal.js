@@ -2,6 +2,7 @@
 // 支持两种模式：
 //   'unlock' - 输入密码解锁（一个输入框）
 //   'set'    - 设置新密码（密码 + 确认）
+// 支持可选的用户名输入框（通过 showUsername 选项启用）
 
 var PasswordModal = {
 
@@ -11,18 +12,22 @@ var PasswordModal = {
   /**
    * 显示密码弹窗
    * @param {Object} options
-   *   title      - 弹窗标题
-   *   message    - 提示信息
-   *   mode       - 'unlock' | 'set'
-   *   cancelText - 取消按钮文字 (默认 'Skip')
-   *   hideCancel - 是否隐藏取消按钮
-   *   onOk       - 确认回调 (接收 password 参数)
-   *   onCancel   - 取消回调
+   *   title        - 弹窗标题
+   *   message      - 提示信息
+   *   mode         - 'unlock' | 'set'
+   *   cancelText   - 取消按钮文字 (默认 'Skip')
+   *   hideCancel   - 是否隐藏取消按钮
+   *   showUsername - 是否显示用户名输入框
+   *   username     - 预填用户名
+   *   onOk         - 确认回调 (接收 { password, username } 参数)
+   *   onCancel     - 取消回调
    */
   show: function(options) {
     var overlay = document.getElementById('password-overlay');
     var title = document.getElementById('password-title');
     var msg = document.getElementById('password-msg');
+    var usernameGroup = document.getElementById('password-username-group');
+    var usernameInput = document.getElementById('password-username');
     var input = document.getElementById('password-input');
     var confirmInput = document.getElementById('password-confirm');
     var okBtn = document.getElementById('password-ok');
@@ -31,9 +36,17 @@ var PasswordModal = {
 
     title.textContent = '~ ' + options.title + ' ~';
     msg.textContent = options.message || '';
+    usernameInput.value = options.username || '';
     input.value = '';
     confirmInput.value = '';
     error.style.display = 'none';
+
+    // 用户名输入框
+    if (options.showUsername) {
+      usernameGroup.style.display = 'block';
+    } else {
+      usernameGroup.style.display = 'none';
+    }
 
     // 根据模式切换 UI
     if (options.mode === 'set') {
@@ -51,7 +64,8 @@ var PasswordModal = {
     this._onCancel = options.onCancel || null;
 
     overlay.classList.add('open');
-    setTimeout(function() { input.focus(); }, 100);
+    var focusTarget = options.showUsername ? usernameInput : input;
+    setTimeout(function() { focusTarget.focus(); }, 100);
   },
 
   close: function() {
@@ -61,6 +75,7 @@ var PasswordModal = {
   },
 
   ok: function() {
+    var usernameInput = document.getElementById('password-username');
     var input = document.getElementById('password-input');
     var confirmInput = document.getElementById('password-confirm');
     var error = document.getElementById('password-error');
@@ -79,7 +94,8 @@ var PasswordModal = {
     }
 
     var password = input.value;
-    if (this._onOk) this._onOk(password);
+    var username = usernameInput.value.trim();
+    if (this._onOk) this._onOk(password, username);
     this.close();
   },
 

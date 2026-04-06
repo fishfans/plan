@@ -125,6 +125,9 @@
   document.getElementById('password-input').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') PasswordModal.ok();
   });
+  document.getElementById('password-username').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') document.getElementById('password-input').focus();
+  });
   document.getElementById('password-confirm').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') PasswordModal.ok();
   });
@@ -137,7 +140,7 @@
     Settings.testConnection();
   });
   document.getElementById('btn-settings-save').addEventListener('click', function() {
-    Settings.save();
+    Settings.saveOrRegister();
   });
   document.getElementById('btn-settings-clear').addEventListener('click', function() {
     Settings.clearConfig();
@@ -155,32 +158,129 @@
 
   render(); // 先渲染空状态
 
-  // ---- 登录/注册按钮绑定 ----
-  document.getElementById('btn-login').addEventListener('click', function() {
-    Auth.handleLogin();
-  });
-  document.getElementById('login-password').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') Auth.handleLogin();
-  });
-  document.getElementById('btn-show-register').addEventListener('click', function() {
-    Auth.showRegisterScreen();
-  });
-  document.getElementById('btn-register-submit').addEventListener('click', function() {
-    Auth.handleRegister();
-  });
-  document.getElementById('btn-register-back').addEventListener('click', function() {
-    Auth.showLoginFromRegister();
-  });
-  document.getElementById('btn-use-local').addEventListener('click', function() {
-    Auth.enterLocalMode();
-  });
+  // ---- 登出按钮 ----
   document.getElementById('btn-logout').addEventListener('click', function() {
-    Auth.logout();
+    showConfirm('Logout? Unsaved changes will be lost.', function(ok) {
+      if (!ok) return;
+      Auth.logout();
+      // 重新启动认证流程
+      startAuth();
+    });
   });
 
   // ---- 启动认证流程 ----
-  Auth.init();
+  startAuth();
 })();
+
+// ==================== 启动认证 ====================
+
+/**
+ * 应用启动认证流程：
+ * 1. 检测环境（file:// 本地 / https GitHub Pages）
+ * 2. 弹出带用户名的密码框
+ * 3. 根据用户名解密对应配置 → 加载数据
+ */
+function startAuth() {
+  state.isLocalMode = location.protocol === 'file:';
+  state.currentUser = null;
+
+  if (state.isLocalMode) {
+    // 本地模式：先尝试从本地加载，失败则弹窗
+    startLocalAuth();
+  } else {
+    // GitHub Pages 模式：弹窗输入用户名+密码
+    startWebAuth();
+  }
+}
+
+function startWebAuth() {
+  PasswordModal.show({
+    title: 'Login',
+    message: 'Enter username and password to load your data',
+    mode: 'unlock',
+    showUsername: true,
+    cancelText: 'Cancel',
+    onOk: function(password, username) {
+      showToast('Loading...');
+      Auth.login(username, password).catch(function(err) {
+        showToast(err.message || 'Login failed');
+        // 失败后重新弹窗
+        setTimeout(startWebAuth, 600);
+      });
+    },
+    onCancel: function() {
+      render();
+    }
+  });
+}
+
+function startLocalAuth() {
+  // 本地模式也支持用户名输入（方便以后切换）
+  PasswordModal.show({
+    title: 'Login',
+    message: 'Enter username and password (leave empty to skip)',
+    mode: 'unlock',
+    showUsername: true,
+    cancelText: 'Skip (Offline)',
+    onOk: function(password, username) {
+      if (!username && !password) {
+        // 都为空 → 直接进入离线模式
+        render();
+        return;
+      }
+      if (!username) {
+        // 无用户名有密码 → 尝试作为主人本地登录
+        tryLocalOwnerLogin(password);
+        return;
+      }
+      // 有用户名 → 尝试在线登录
+      showToast('Loading...');
+      Auth.login(username, password).then(function() {
+        // 登录成功
+      }).catch(function(err) {
+        showToast(err.message || 'Login failed');
+        setTimeout(startLocalAuth, 600);
+      });
+    },
+    onCancel: function() {
+      // 跳过 → 离线模式
+      render();
+    }
+  });
+}
+
+function tryLocalOwnerLogin(password) {
+  FileAccess.getDirHandle(null).then(function(handle) {
+    if (!handle) {
+      showToast('No local work path. Use Settings to configure.');
+      render();
+      return;
+    }
+    return FileAccess.readLocalFile('config.json').then(function(configText) {
+      if (!configText) {
+        showToast('No local config found.');
+        render();
+        return;
+      }
+      FileAccess.updateConfigCache(configText);
+      GitHub.unlock(password).then(function() {
+        return GitHub.fetchPlanData().then(function(data) {
+          if (data) {
+            applyRemoteData(data);
+            showToast('Loaded from GitHub!');
+          } else {
+            fallbackToLocal();
+          }
+        });
+      }).catch(function() {
+        showToast('Wrong password!');
+        setTimeout(startLocalAuth, 600);
+      });
+    });
+  }).catch(function() {
+    render();
+  });
+}
 
 // ==================== 数据加载流程 ====================
 
