@@ -28,8 +28,9 @@ var FileAccess = {
    * @param {string} [username] - 用户名，用于多用户区分句柄
    */
   saveDirHandle: function(handle, username) {
+    var key = username ? ('dirHandle_' + username) : 'dirHandle';
     this._rootDirHandle = handle;
-    this._handleKey = username ? ('dirHandle_' + username) : 'dirHandle';
+    this._handleKey = key;
     return this._openDB().then(function(db) {
       return new Promise(function(resolve, reject) {
         var tx = db.transaction(this._DB_STORE, 'readwrite');
