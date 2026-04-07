@@ -118,3 +118,20 @@ submit 改为 save remote
 相当于在本项目注册。本项目的项目主人其实也是在使用这个项目的，他的数据就保存在本项目的data/config.json,别人如果希望注册写${username}.json到本项目的话
 就需要在生成用户密码后再弹窗输入项目主人密码进行注册。注册是为了访问本项目的域名网页也可以编辑用户自己仓库的数据。如果用户不需要访问本项目域名网页来使用
 只需要本地file协议使用，其实就可以跳过注册这一步。所以当打开index.html，是同时需要输入用户名和密码的，然后决定和那个远程仓库交互。
+
+# 多用户功能2
+1. 普通用户注册，填写用户仓库信息和用户名，测试用户仓库连接，点击注册
+此时：输入用户密码，生成加密用户设置文件config.json,保存到用户选择的工作路径，
+然后是配置文件git到用户仓库的username/config.json，然后就是fetch项目中data/config.json
+主人配置文件，输入主人密码解密，再把用户的配置文件git到主人仓库的users/username.json里面 此时才完成注册
+2. 主人注册，填写用户仓库信息，用户名为空，工作路径默认为项目路径下的data目录，测试用户仓库连接，点击注册 此时：输入密码，生成config.json，
+保存到data目录，然后是配置文件git到主人仓库的data/config.json。注册完成。
+3. 修改任意一个config.json的字段都是通过重新注册完成。
+4. 读取的时候，主人先fetch 项目data/config.json。普通用户就是fetch users/username.json,然后再使用密码解密获取数据
+
+
+# 扩展 让有github账号的用户创建自己仓库给周边的人用 cancel
+1. 在berlinlancho访问的时候，可以选择注册主人类型还是普通用户类型。主人类型放在berlinlancho的data/username/config 下面
+普通类型放在users/username。其他主人的普通用户放在主人仓库的users目录下。读取的时候先从berlinlancho获取data/username/config.json，
+然后就是再读取其他主人仓库下users下的目录进行交互。
+好像也不需要，其他主人提供自己的token给普通用户不就好了吗？

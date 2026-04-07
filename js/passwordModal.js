@@ -95,8 +95,12 @@ var PasswordModal = {
 
     var password = input.value;
     var username = usernameInput.value.trim();
-    if (this._onOk) this._onOk(password, username);
-    this.close();
+    var callback = this._onOk;
+    this._onOk = null;
+    this._onCancel = null;
+    // 先关闭当前弹窗，再执行回调（回调可能会打开新弹窗）
+    document.getElementById('password-overlay').classList.remove('open');
+    if (callback) callback(password, username);
   },
 
   cancel: function() {

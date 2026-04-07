@@ -13,7 +13,12 @@ var Settings = {
     document.getElementById('settings-status').className = 'settings-status';
     this._updateUI();
     this._updateWorkPathStatus();
-    this._loadExistingConfig();
+    // 未登录时不加载已有配置，避免弹窗干扰注册流程
+    if (state.currentUser && state.currentUser.role !== 'local') {
+      this._loadExistingConfig();
+    } else {
+      this._clearForm();
+    }
   },
 
   close: function() {
@@ -278,18 +283,26 @@ var Settings = {
   /** 未登录用户注册流程 */
   _register: function() {
     var values = this._getFormValues();
-    if (!values.username) {
-      showToast('Please fill in Username');
-      return;
-    }
-    var usernameErr = UserRegistry.validateUsername(values.username);
-    if (usernameErr) {
-      showToast(usernameErr);
-      return;
-    }
     if (!values.owner || !values.repo || !values.token) {
       showToast('Please fill in Owner, Repo and Token');
       return;
+    }
+    if (!FileAccess.hasValidHandle()) {
+      showToast('Please select a local work path');
+      return;
+    }
+
+    var isOwner = !values.username;
+    if (!isOwner) {
+      if (location.protocol === 'file:') {
+        showToast('User registration requires HTTPS (GitHub Pages)');
+        return;
+      }
+      var usernameErr = UserRegistry.validateUsername(values.username);
+      if (usernameErr) {
+        showToast(usernameErr);
+        return;
+      }
     }
 
     var statusEl = document.getElementById('settings-status');
@@ -297,52 +310,83 @@ var Settings = {
     statusEl.className = 'settings-status loading';
 
     var self = this;
-    var username = values.username;
+    var regInfo = {
+      username: values.username,
+      owner: values.owner,
+      repo: values.repo,
+      branch: values.branch,
+      token: values.token
+    };
 
     GitHub.testConnection(values).then(function() {
-      statusEl.textContent = 'Connected! Set your account password...';
+      statusEl.textContent = 'Connected! Set your password...';
       statusEl.className = 'settings-status success';
 
-      // Step 1: 设置用户密码
+      // 设置密码
       PasswordModal.show({
-        title: 'Set Your Password',
-        message: 'This password will encrypt your config.\nYou need it to login later.',
+        title: 'Set Password',
+        message: isOwner
+          ? 'Set your owner password.\nYou need it to login later.'
+          : 'Set your account password.\nYou need it to login later.',
         mode: 'set',
         hideCancel: true,
-        onOk: function(userPassword) {
-          // Step 2: 输入主人密码验证
-          PasswordModal.show({
-            title: 'Owner Verification',
-            message: 'Enter the project owner password to authorize registration',
-            mode: 'unlock',
-            cancelText: 'Cancel',
-            onOk: function(ownerPassword) {
-              statusEl.textContent = 'Registering...';
-              statusEl.className = 'settings-status loading';
+        onOk: function(password) {
+          statusEl.textContent = 'Saving config...';
+          statusEl.className = 'settings-status loading';
 
-              Auth.register({
-                username: username,
-                password: userPassword,
-                owner: values.owner,
-                repo: values.repo,
-                token: values.token
-              }, ownerPassword).then(function() {
-                showToast('Registered as "' + username + '"!');
-                self.close();
-                // 注册成功后自动登录
-                Auth.login(username, userPassword).catch(function(err) {
-                  showToast('Registered, but auto-login failed: ' + err.message);
-                });
-              }).catch(function(err) {
-                statusEl.textContent = 'Registration failed: ' + (err.message || err);
-                statusEl.className = 'settings-status error';
+          if (isOwner) {
+            // ===== 主人注册：生成 config → 保存本地 → 推送远程 =====
+            Auth.registerOwner(regInfo, password).then(function() {
+              showToast('Owner registered!');
+              self.close();
+              Auth.login(null, password).catch(function(err) {
+                showToast('Registered, but auto-login failed: ' + err.message);
               });
-            },
-            onCancel: function() {
-              statusEl.textContent = 'Registration cancelled';
+            }).catch(function(err) {
+              statusEl.textContent = 'Registration failed: ' + (err.message || err);
               statusEl.className = 'settings-status error';
-            }
-          });
+            });
+          } else {
+            // ===== 普通用户注册 =====
+            // Step 1: 生成 config → 保存本地 → 推送到用户仓库
+            Auth.registerUserStep1(regInfo, password).then(function(encryptedJson) {
+              // Step 2: 输入主人密码验证
+              statusEl.textContent = 'Config saved! Enter owner password...';
+              statusEl.className = 'settings-status success';
+
+              PasswordModal.show({
+                title: 'Owner Verification',
+                message: 'Enter the project owner password to authorize registration',
+                mode: 'unlock',
+                cancelText: 'Cancel',
+                onOk: function(ownerPassword) {
+                  statusEl.textContent = 'Authorizing...';
+                  statusEl.className = 'settings-status loading';
+
+                  // Step 3: 验证主人密码 → 推送到项目仓库
+                  Auth.registerUserStep2(regInfo, ownerPassword, encryptedJson)
+                    .then(function() {
+                      showToast('Registered as "' + regInfo.username + '"!');
+                      self.close();
+                      Auth.login(regInfo.username, password).catch(function(err) {
+                        showToast('Registered, but auto-login failed: ' + err.message);
+                      });
+                    })
+                    .catch(function(err) {
+                      statusEl.textContent = 'Registration failed: ' + (err.message || err);
+                      statusEl.className = 'settings-status error';
+                    });
+                },
+                onCancel: function() {
+                  statusEl.textContent = 'Registration cancelled (config saved locally)';
+                  statusEl.className = 'settings-status error';
+                }
+              });
+            }).catch(function(err) {
+              statusEl.textContent = 'Registration failed: ' + (err.message || err);
+              statusEl.className = 'settings-status error';
+            });
+          }
         }
       });
     }).catch(function(e) {

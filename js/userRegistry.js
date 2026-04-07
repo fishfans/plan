@@ -38,26 +38,45 @@ var UserRegistry = {
   /**
    * 从项目仓库获取用户的加密配置
    * @param {string|null} username - 用户名，null 表示项目主人
+   * @param {Object} [projectRepo] - 可选，显式指定项目仓库 {owner, repo, branch}
+   *                                 用于 file:// 协议下注册时通过 GitHub API 获取
    * @returns {Promise<string|null>} 加密配置 JSON 字符串，404 返回 null
    */
-  fetchUserConfigBlob: function(username) {
+  fetchUserConfigBlob: function(username, projectRepo) {
+    var filePath = username ? ('users/' + username + '.json') : 'data/config.json';
+
+    // 优先使用显式传入的项目仓库信息（file:// 注册场景）
+    if (projectRepo && projectRepo.owner && projectRepo.repo) {
+      var url = 'https://api.github.com/repos/' + projectRepo.owner + '/' + projectRepo.repo +
+        '/contents/' + encodeURIComponent(filePath) + '?ref=' + (projectRepo.branch || 'main');
+      console.log('[DEBUG fetchUserConfigBlob] 通过 GitHub API 获取:', url);
+      return fetch(url, {
+        headers: { 'Accept': 'application/vnd.github.v3+json' }
+      }).then(function(res) {
+        console.log('[DEBUG fetchUserConfigBlob] status:', res.status);
+        if (res.status === 404) return null;
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json().then(function(data) {
+          return decodeURIComponent(escape(atob(data.content)));
+        });
+      });
+    }
+
     // GitHub Pages 同源获取（无 CORS 问题）
     if (this.isGitHubPages()) {
-      var path = username ? ('users/' + username + '.json') : 'data/config.json';
-      return fetch(path).then(function(res) {
+      return fetch(filePath).then(function(res) {
         if (!res.ok) return null;
         return res.text();
       }).catch(function() { return null; });
     }
-    // 非 GitHub Pages 的 HTTPS（如自定义域名）通过 GitHub API 获取
+    // 非 GitHub Pages 的 HTTPS（如自定义域名）通过 URL 检测项目仓库
     var project = this.detectProjectRepo();
     if (!project) return Promise.reject(new Error('Cannot detect project repo'));
 
-    var filePath = username ? ('users/' + username + '.json') : 'data/config.json';
-    var url = 'https://api.github.com/repos/' + project.owner + '/' + project.repo +
+    var url2 = 'https://api.github.com/repos/' + project.owner + '/' + project.repo +
       '/contents/' + encodeURIComponent(filePath) + '?ref=' + project.branch;
 
-    return fetch(url, {
+    return fetch(url2, {
       headers: { 'Accept': 'application/vnd.github.v3+json' }
     }).then(function(res) {
       if (res.status === 404) return null;
@@ -100,44 +119,9 @@ var UserRegistry = {
    * @returns {Promise}
    */
   registerUser: function(username, encryptedJson, ownerConfig) {
-    var filePath = 'users/' + encodeURIComponent(username) + '.json';
-    var url = 'https://api.github.com/repos/' + ownerConfig.owner + '/' + ownerConfig.repo +
-      '/contents/' + filePath + '?ref=' + ownerConfig.branch;
-
-    return fetch(url, {
-      headers: {
-        'Authorization': 'token ' + ownerConfig.token,
-        'Accept': 'application/vnd.github.v3+json'
-      }
-    }).then(function(res) {
-      if (res.status === 404) return null;
-      if (!res.ok) return null;
-      return res.json().then(function(data) { return data.sha; });
-    }).catch(function() { return null; }).then(function(sha) {
-      var content = btoa(unescape(encodeURIComponent(encryptedJson)));
-      var body = {
-        message: 'Register user: ' + username + ' - ' + new Date().toISOString().slice(0, 10),
-        content: content,
-        branch: ownerConfig.branch
-      };
-      if (sha) body.sha = sha;
-
-      return fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Authorization': 'token ' + ownerConfig.token,
-          'Accept': 'application/vnd.github.v3+json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      });
-    }).then(function(res) {
-      if (!res.ok) return res.json().then(function(err) {
-        if (res.status === 409) throw new Error('Conflict - username may already exist');
-        throw new Error(err.message || 'HTTP ' + res.status);
-      });
-      return res.json();
-    });
+    var filePath = 'users/' + username + '.json';
+    var commitMsg = 'Register user: ' + username + ' - ' + new Date().toISOString().slice(0, 10);
+    return GitHub.pushFileWithTree(ownerConfig, filePath, encryptedJson, commitMsg);
   },
 
   // ==================== 用户名验证 ====================

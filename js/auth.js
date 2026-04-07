@@ -101,49 +101,138 @@ var Auth = {
   // ==================== 注册 ====================
 
   /**
-   * 在设置页面执行注册流程
-   * @param {Object} regInfo - { username, password, owner, repo, token }
-   * @param {string} ownerPassword - 项目主人密码
+   * 主人注册：生成 config.json → 保存本地 → 推送到远程 data/config.json
+   * @param {Object} regInfo - { owner, repo, token, branch }
+   * @param {string} password - 主人密码
    * @returns {Promise}
    */
-  register: function(regInfo, ownerPassword) {
-    var username = regInfo.username;
+  registerOwner: function(regInfo, password) {
+    console.log('[DEBUG registerOwner] 开始主人注册');
+    var ownerConfig = {
+      owner: regInfo.owner,
+      repo: regInfo.repo,
+      path: 'data/plandata.json',
+      branch: regInfo.branch || 'main',
+      token: regInfo.token,
+      username: 'owner',
+      role: 'owner',
+      registeredAt: new Date().toISOString()
+    };
 
-    // 1. 验证主人密码 → 获取主人配置
+    // 加密
+    return Crypto.encrypt(JSON.stringify(ownerConfig), password).then(function(encryptedObj) {
+      var encryptedJson = JSON.stringify(encryptedObj, null, 2);
+      console.log('[DEBUG registerOwner] 加密完成');
+
+      // 保存到本地工作路径 config.json
+      return FileAccess.writeLocalFile('config.json', encryptedJson).then(function() {
+        console.log('[DEBUG registerOwner] 本地保存成功');
+        FileAccess.updateConfigCache(encryptedJson);
+
+        // 推送到远程 data/config.json
+        var repoConfig = {
+          owner: regInfo.owner,
+          repo: regInfo.repo,
+          branch: regInfo.branch || 'main',
+          token: regInfo.token
+        };
+        return GitHub.pushFile(repoConfig, 'data/config.json', encryptedJson, 'Owner registration');
+      }).then(function() {
+        console.log('[DEBUG registerOwner] 远程推送成功');
+      });
+    });
+  },
+
+  /**
+   * 普通用户注册第一步：生成 config.json → 保存本地 → 推送到用户仓库 username/config.json
+   * @param {Object} regInfo - { username, owner, repo, token, branch }
+   * @param {string} password - 用户密码
+   * @returns {Promise<string>} 返回 encryptedJson，供第二步使用
+   */
+  registerUserStep1: function(regInfo, password) {
+    var username = regInfo.username;
+    console.log('[DEBUG registerUserStep1] 开始, username:', username);
+
+    var userConfig = {
+      owner: regInfo.owner,
+      repo: regInfo.repo,
+      path: username + '/plandata.json',
+      branch: regInfo.branch || 'main',
+      token: regInfo.token,
+      username: username,
+      role: 'user',
+      registeredAt: new Date().toISOString()
+    };
+
+    return Crypto.encrypt(JSON.stringify(userConfig), password).then(function(encryptedObj) {
+      var encryptedJson = JSON.stringify(encryptedObj, null, 2);
+      console.log('[DEBUG registerUserStep1] 加密完成');
+
+      // 保存到本地工作路径 config.json
+      return FileAccess.writeLocalFile('config.json', encryptedJson).then(function() {
+        console.log('[DEBUG registerUserStep1] 本地保存成功');
+        FileAccess.updateConfigCache(encryptedJson);
+
+        // 推送到用户仓库 username/config.json
+        var repoConfig = {
+          owner: regInfo.owner,
+          repo: regInfo.repo,
+          branch: regInfo.branch || 'main',
+          token: regInfo.token
+        };
+        console.log('[DEBUG registerUserStep1] 推送到', repoConfig.owner + '/' + repoConfig.repo,
+          username + '/config.json');
+        return GitHub.pushFileWithTree(repoConfig, username + '/config.json', encryptedJson,
+          'Register user: ' + username);
+      }).then(function() {
+        console.log('[DEBUG registerUserStep1] 远程推送成功');
+        return encryptedJson;
+      });
+    });
+  },
+
+  /**
+   * 普通用户注册第二步：获取主人配置 → 验证主人密码 → 推送用户配置到项目仓库 users/username.json
+   * @param {Object} regInfo - { username, owner, repo, token, branch }
+   * @param {string} ownerPassword - 主人密码
+   * @param {string} encryptedJson - 第一步生成的加密配置 JSON
+   * @returns {Promise}
+   */
+  registerUserStep2: function(regInfo, ownerPassword, encryptedJson) {
+    var username = regInfo.username;
+    console.log('[DEBUG registerUserStep2] 开始, username:', username);
+
+    // 1. 获取主人配置
+    console.log('[DEBUG registerUserStep2] 获取主人配置...');
     return UserRegistry.fetchUserConfigBlob(null).then(function(blobText) {
-      if (!blobText) throw new Error('No owner config found in project repo');
+      if (!blobText) throw new Error('No owner config found');
       var encryptedObj = JSON.parse(blobText);
+      // 2. 用主人密码解密验证
       return Crypto.decrypt(encryptedObj, ownerPassword).then(function(decrypted) {
-        return JSON.parse(decrypted);
+        var ownerConfig = JSON.parse(decrypted);
+        console.log('[DEBUG registerUserStep2] 主人密码验证成功, owner/repo:',
+          ownerConfig.owner + '/' + ownerConfig.repo);
+        return ownerConfig;
       });
     }).then(function(ownerConfig) {
-      // 2. 检查用户名是否已存在
+      // 3. 检查用户名是否已存在
       return UserRegistry.checkUserExists(username, ownerConfig).then(function(exists) {
         if (exists) throw new Error('Username "' + username + '" is already taken');
         return ownerConfig;
       });
     }).then(function(ownerConfig) {
-      // 3. 创建用户配置并加密
-      var userConfig = {
-        owner: regInfo.owner,
-        repo: regInfo.repo,
-        path: username + '/plandata.json',
-        branch: 'main',
-        token: regInfo.token,
-        username: username,
-        role: 'user',
-        registeredAt: new Date().toISOString()
-      };
-
-      return Crypto.encrypt(JSON.stringify(userConfig), regInfo.password).then(function(encryptedObj) {
-        return {
-          encryptedJson: JSON.stringify(encryptedObj, null, 2),
-          ownerConfig: ownerConfig
-        };
-      });
-    }).then(function(result) {
       // 4. 推送 users/${username}.json 到项目仓库
-      return UserRegistry.registerUser(username, result.encryptedJson, result.ownerConfig);
+      var safeOwnerConfig = {
+        owner: ownerConfig.owner,
+        repo: ownerConfig.repo,
+        branch: ownerConfig.branch || 'main',
+        token: ownerConfig.token
+      };
+      console.log('[DEBUG registerUserStep2] 推送 users/' + username + '.json 到',
+        safeOwnerConfig.owner + '/' + safeOwnerConfig.repo);
+      return UserRegistry.registerUser(username, encryptedJson, safeOwnerConfig);
+    }).then(function() {
+      console.log('[DEBUG registerUserStep2] 注册完成!');
     });
   },
 

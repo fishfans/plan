@@ -122,6 +122,7 @@ var GitHub = {
       });
     }).then(function(res) {
       if (!res.ok) return res.json().then(function(err) {
+        console.error('[DEBUG pushFile] FAILED url:', url, 'status:', res.status, 'error:', err);
         if (res.status === 409) throw new Error('SHA conflict - file was modified by others');
         throw new Error(err.message || 'HTTP ' + res.status);
       });
@@ -170,6 +171,7 @@ var GitHub = {
       });
     }).then(function(res) {
       if (!res.ok) return res.json().then(function(err) {
+        console.error('[DEBUG pushFile] FAILED url:', url, 'status:', res.status, 'error:', err);
         if (res.status === 409) throw new Error('SHA conflict - file was modified by others');
         throw new Error(err.message || 'HTTP ' + res.status);
       });
@@ -186,6 +188,118 @@ var GitHub = {
   pushConfigFile: function(encryptedJson, tempConfig) {
     var config = tempConfig || this._config;
     return this.pushFile(config, 'data/config.json', encryptedJson, 'Update config - ' + new Date().toISOString().slice(0, 10));
+  },
+
+  /**
+   * 使用 Git Trees API 创建/更新文件（自动创建中间目录）
+   * GitHub Contents API 不支持自动创建中间目录，当目录不存在时会报
+   * "A requested file or directory could not be found"，此方法通过 Trees API 绕过该限制
+   * @param {Object} config - {owner, repo, branch, token}
+   * @param {string} remotePath - 远程路径，如 'users/alice.json'
+   * @param {string} content - 文件内容字符串
+   * @param {string} commitMsg - 提交消息
+   * @returns {Promise}
+   */
+  pushFileWithTree: function(config, remotePath, content, commitMsg) {
+    var headers = {
+      'Authorization': 'token ' + config.token,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    };
+    var repoUrl = 'https://api.github.com/repos/' + config.owner + '/' + config.repo;
+    console.log('[DEBUG pushFileWithTree] 开始:', remotePath, '→', config.owner + '/' + config.repo, 'branch:', config.branch);
+
+    // 1. 获取 branch ref → commit SHA → tree SHA
+    var refUrl = repoUrl + '/git/ref/heads/' + config.branch;
+    console.log('[DEBUG pushFileWithTree] Step 1: GET', refUrl);
+    return fetch(refUrl, { headers: headers })
+      .then(function(res) {
+        console.log('[DEBUG pushFileWithTree] Step 1 status:', res.status);
+        if (!res.ok) return res.text().then(function(t) { throw new Error('Step1 failed (' + res.status + '): ' + t); });
+        return res.json();
+      })
+      .then(function(ref) {
+        var commitSha = ref.object.sha;
+        console.log('[DEBUG pushFileWithTree] Step 2: GET commit', commitSha);
+        return fetch(repoUrl + '/git/commits/' + commitSha, { headers: headers })
+          .then(function(res) {
+            console.log('[DEBUG pushFileWithTree] Step 2 status:', res.status);
+            if (!res.ok) return res.text().then(function(t) { throw new Error('Step2 failed (' + res.status + '): ' + t); });
+            return res.json();
+          })
+          .then(function(commit) {
+            console.log('[DEBUG pushFileWithTree] Step 2 done, treeSha:', commit.tree.sha);
+            return { commitSha: commitSha, treeSha: commit.tree.sha };
+          });
+      })
+      // 3. 创建 blob
+      .then(function(data) {
+        console.log('[DEBUG pushFileWithTree] Step 3: POST blob, content length:', content.length);
+        return fetch(repoUrl + '/git/blobs', {
+          method: 'POST', headers: headers,
+          body: JSON.stringify({ content: content, encoding: 'utf-8' })
+        }).then(function(res) {
+          console.log('[DEBUG pushFileWithTree] Step 3 status:', res.status);
+          if (!res.ok) return res.text().then(function(t) { throw new Error('Step3 failed (' + res.status + '): ' + t); });
+          return res.json();
+        }).then(function(blob) {
+          console.log('[DEBUG pushFileWithTree] Step 3 done, blobSha:', blob.sha);
+          data.blobSha = blob.sha;
+          return data;
+        });
+      })
+      // 4. 创建包含新文件的 tree（自动创建中间目录）
+      .then(function(data) {
+        var treePayload = {
+          base_tree: data.treeSha,
+          tree: [{ path: remotePath, mode: '100644', type: 'blob', sha: data.blobSha }]
+        };
+        console.log('[DEBUG pushFileWithTree] Step 4: POST tree, path:', remotePath);
+        return fetch(repoUrl + '/git/trees', {
+          method: 'POST', headers: headers,
+          body: JSON.stringify(treePayload)
+        }).then(function(res) {
+          console.log('[DEBUG pushFileWithTree] Step 4 status:', res.status);
+          if (!res.ok) return res.text().then(function(t) { throw new Error('Step4 failed (' + res.status + '): ' + t); });
+          return res.json();
+        }).then(function(tree) {
+          console.log('[DEBUG pushFileWithTree] Step 4 done, newTreeSha:', tree.sha);
+          data.newTreeSha = tree.sha;
+          return data;
+        });
+      })
+      // 5. 创建新 commit
+      .then(function(data) {
+        console.log('[DEBUG pushFileWithTree] Step 5: POST commit');
+        return fetch(repoUrl + '/git/commits', {
+          method: 'POST', headers: headers,
+          body: JSON.stringify({
+            message: commitMsg || ('Update ' + remotePath + ' - ' + new Date().toISOString().slice(0, 10)),
+            tree: data.newTreeSha,
+            parents: [data.commitSha]
+          })
+        }).then(function(res) {
+          console.log('[DEBUG pushFileWithTree] Step 5 status:', res.status);
+          if (!res.ok) return res.text().then(function(t) { throw new Error('Step5 failed (' + res.status + '): ' + t); });
+          return res.json();
+        }).then(function(commit) {
+          console.log('[DEBUG pushFileWithTree] Step 5 done, newCommitSha:', commit.sha);
+          data.newCommitSha = commit.sha;
+          return data;
+        });
+      })
+      // 6. 更新 branch ref
+      .then(function(data) {
+        console.log('[DEBUG pushFileWithTree] Step 6: PATCH branch ref to', data.newCommitSha);
+        return fetch(repoUrl + '/git/refs/heads/' + config.branch, {
+          method: 'PATCH', headers: headers,
+          body: JSON.stringify({ sha: data.newCommitSha })
+        }).then(function(res) {
+          console.log('[DEBUG pushFileWithTree] Step 6 status:', res.status);
+          if (!res.ok) return res.text().then(function(t) { throw new Error('Step6 failed (' + res.status + '): ' + t); });
+          console.log('[DEBUG pushFileWithTree] 全部完成!');
+        });
+      });
   },
 
   /** 清除内存中的配置和密码 */
