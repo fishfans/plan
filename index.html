@@ -449,6 +449,26 @@ html, body {
   text-align: center;
 }
 #confirm-box p { font-size: 22px; margin-bottom: 16px; }
+
+/* ========== 工作路径弹窗 ========== */
+#workpath-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.25);
+  z-index: 110;
+  align-items: center;
+  justify-content: center;
+}
+#workpath-overlay.open { display: flex; }
+#workpath-box {
+  background: var(--color-paper);
+  padding: 24px 28px;
+  width: 380px;
+  max-width: 90vw;
+  text-align: center;
+}
+#workpath-box h3 { font-size: 24px; margin-bottom: 12px; }
 #confirm-box .btns { display: flex; justify-content: center; gap: 10px; }
 
 /* ========== Change Date 弹窗 ========== */
@@ -747,6 +767,19 @@ html, body {
   </div>
 </div>
 
+<!-- 工作路径选择/授权弹窗 -->
+<div id="workpath-overlay">
+  <div id="workpath-box" class="sketch-box">
+    <h3>~ Local Work Path ~</h3>
+    <p id="workpath-msg" style="font-size:16px;color:#888;margin-bottom:16px;text-align:center;white-space:pre-line;"></p>
+    <div class="btns" style="display:flex;justify-content:center;gap:10px;">
+      <button class="sketch-btn" id="workpath-cancel">Skip</button>
+      <button class="sketch-btn" id="workpath-select">Select</button>
+      <button class="sketch-btn" id="workpath-authorize">Authorize</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
@@ -834,6 +867,7 @@ html, body {
 <script src="js/fileAccess.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/workPathModal.js"></script>
 <script src="js/passwordModal.js"></script>
 <script src="js/github.js"></script>
 <script src="js/userRegistry.js"></script>

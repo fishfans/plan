@@ -28,6 +28,7 @@
       closeExportMenu();
       closeChangeDateModal(false);
       PasswordModal.close();
+      WorkPathModal.cancel();
       if (Settings.isOpen) Settings.close();
       return;
     }
@@ -130,6 +131,23 @@
   });
   document.getElementById('password-confirm').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') PasswordModal.ok();
+  });
+
+  // ---- WorkPath 弹窗 ----
+  document.getElementById('workpath-overlay').addEventListener('click', function() {
+    WorkPathModal.cancel();
+  });
+  document.getElementById('workpath-box').addEventListener('click', function(e) {
+    e.stopPropagation();
+  });
+  document.getElementById('workpath-select').addEventListener('click', function() {
+    WorkPathModal.select();
+  });
+  document.getElementById('workpath-authorize').addEventListener('click', function() {
+    WorkPathModal.authorize();
+  });
+  document.getElementById('workpath-cancel').addEventListener('click', function() {
+    WorkPathModal.cancel();
   });
 
   // ---- Settings 弹窗 ----

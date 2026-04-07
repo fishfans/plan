@@ -50,31 +50,37 @@ var Auth = {
 
       // 尝试恢复本地工作目录句柄
       var handleUsername = isOwner ? null : username;
-      var dirName = config.workDirName;
-      var _pickDir = function() {
-        if (!window.showDirectoryPicker) return Promise.resolve();
-        return window.showDirectoryPicker({ mode: 'readwrite' }).then(function(pickedHandle) {
-          return FileAccess.saveDirHandle(pickedHandle, handleUsername).then(function() {
-            showToast('Work path set: ' + pickedHandle.name);
-          });
-        }).catch(function(e) {
-          if (e.name !== 'AbortError') showToast('Failed to pick directory: ' + e.message);
-        });
-      };
       return FileAccess.getDirHandle(handleUsername).then(function(handle) {
         if (handle) {
-          // 句柄存在，检查权限；权限过期时提示用户重新选择
-          return FileAccess._ensurePermission().then(function(granted) {
-            if (granted) return;
-            // 权限被拒，清除内存中的无效句柄
-            FileAccess._rootDirHandle = null;
-            FileAccess._handleKey = null;
-            return _pickDir();
+          // 句柄存在，弹授权确认弹窗
+          return new Promise(function(resolve) {
+            WorkPathModal.show({
+              mode: 'authorize',
+              dirName: handle.name,
+              onAuthorize: function(granted) {
+                if (!granted) {
+                  // 权限被拒，清除内存中的无效句柄
+                  FileAccess._rootDirHandle = null;
+                  FileAccess._handleKey = null;
+                }
+                resolve();
+              },
+              onCancel: function() { resolve(); }
+            });
           });
         }
-        // IndexedDB 无句柄，如果配置中记录了目录名则弹窗让用户选择
-        if (!dirName) return;
-        return _pickDir();
+        // IndexedDB 无句柄，弹说明弹窗让用户选择
+        return new Promise(function(resolve) {
+          if (!window.showDirectoryPicker) { resolve(); return; }
+          WorkPathModal.show({
+            mode: 'select',
+            onSelect: function(pickedHandle) {
+              showToast('Work path set: ' + pickedHandle.name);
+              resolve();
+            },
+            onCancel: function() { resolve(); }
+          });
+        });
       }).catch(function() {}).then(function() {
         return Auth._loadPlanData();
       });
