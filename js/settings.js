@@ -315,7 +315,8 @@ var Settings = {
       owner: values.owner,
       repo: values.repo,
       branch: values.branch,
-      token: values.token
+      token: values.token,
+      workDirName: values.workDirName || null
     };
 
     GitHub.testConnection(values).then(function() {

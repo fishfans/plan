@@ -50,9 +50,18 @@ var Auth = {
 
       // 尝试恢复本地工作目录句柄
       var handleUsername = isOwner ? null : username;
+      var dirName = config.workDirName;
       return FileAccess.getDirHandle(handleUsername).then(function(handle) {
-        if (!handle) return;
-        return FileAccess._ensurePermission();
+        if (handle) return FileAccess._ensurePermission();
+        // IndexedDB 无句柄，如果配置中记录了目录名则弹窗让用户选择
+        if (!dirName || !window.showDirectoryPicker) return;
+        return window.showDirectoryPicker({ mode: 'readwrite' }).then(function(pickedHandle) {
+          return FileAccess.saveDirHandle(pickedHandle, handleUsername).then(function() {
+            showToast('Work path set: ' + pickedHandle.name);
+          });
+        }).catch(function(e) {
+          if (e.name !== 'AbortError') showToast('Failed to pick directory: ' + e.message);
+        });
       }).catch(function() {}).then(function() {
         return Auth._loadPlanData();
       });
@@ -116,6 +125,7 @@ var Auth = {
       token: regInfo.token,
       username: 'owner',
       role: 'owner',
+      workDirName: regInfo.workDirName || null,
       registeredAt: new Date().toISOString()
     };
 
@@ -161,6 +171,7 @@ var Auth = {
       token: regInfo.token,
       username: username,
       role: 'user',
+      workDirName: regInfo.workDirName || null,
       registeredAt: new Date().toISOString()
     };
 

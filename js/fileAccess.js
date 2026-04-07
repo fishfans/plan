@@ -4,6 +4,7 @@
 
 var FileAccess = {
   _rootDirHandle: null,    // 内存中缓存的工作目录句柄
+  _handleKey: null,        // 当前缓存的 handle 对应的 IndexedDB key
   _encryptedConfig: null,  // 内存中缓存的加密配置 JSON 字符串
   _DB_NAME: 'PlanAppDB',
   _DB_STORE: 'appData',
@@ -28,7 +29,7 @@ var FileAccess = {
    */
   saveDirHandle: function(handle, username) {
     this._rootDirHandle = handle;
-    var key = username ? ('dirHandle_' + username) : 'dirHandle';
+    this._handleKey = username ? ('dirHandle_' + username) : 'dirHandle';
     return this._openDB().then(function(db) {
       return new Promise(function(resolve, reject) {
         var tx = db.transaction(this._DB_STORE, 'readwrite');
@@ -46,8 +47,11 @@ var FileAccess = {
    * @param {string} [username] - 用户名，用于多用户区分句柄
    */
   getDirHandle: function(username) {
-    if (this._rootDirHandle) return Promise.resolve(this._rootDirHandle);
     var key = username ? ('dirHandle_' + username) : 'dirHandle';
+    // 缓存的 handle 是当前用户的才复用，否则清除后重新从 IndexedDB 加载
+    if (this._rootDirHandle && this._handleKey === key) return Promise.resolve(this._rootDirHandle);
+    this._rootDirHandle = null;
+    this._handleKey = null;
     return this._openDB().then(function(db) {
       return new Promise(function(resolve, reject) {
         var tx = db.transaction(this._DB_STORE, 'readonly');
@@ -63,6 +67,7 @@ var FileAccess = {
             return;
           }
           this._rootDirHandle = record.handle;
+          this._handleKey = key;
           resolve(record.handle);
         }.bind(this);
         getReq.onerror = function() { reject(getReq.error); };
@@ -133,6 +138,7 @@ var FileAccess = {
   /** 清除所有缓存和 IndexedDB 句柄 */
   clearAll: function(username) {
     this._rootDirHandle = null;
+    this._handleKey = null;
     this._encryptedConfig = null;
     var keysToDelete = username
       ? ['dirHandle', 'dirHandle_' + username]
