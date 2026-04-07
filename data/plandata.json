@@ -49,6 +49,7 @@
       "planSets": []
     },
     "2026-04-07": {
+    "2026-04-07": {
       "planSets": [
         {
           "id": "id_mngvgw5z_r5rpwd",
@@ -203,6 +204,5 @@
       "planSets": []
     }
   },
-  "currentDate": "2026-04-07",
-  "savedAt": 1775527899698
+  "currentDate": "2026-04-07"
 }
