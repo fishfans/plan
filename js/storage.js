@@ -93,7 +93,9 @@ var Storage = {
   },
 
   clearConfig: function() {
-    return FileAccess.clearAll();
+    var username = (state.currentUser && state.currentUser.role !== 'owner')
+      ? state.currentUser.username : null;
+    return FileAccess.clearAll(username);
   },
 
   // ==================== UI 辅助 ====================

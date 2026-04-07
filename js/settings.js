@@ -76,8 +76,11 @@ var Settings = {
       return;
     }
     var self = this;
+    // 根据当前用户角色决定 IndexedDB key（区分多用户句柄）
+    var handleUsername = (state.currentUser && state.currentUser.role !== 'owner')
+      ? state.currentUser.username : null;
     window.showDirectoryPicker({ mode: 'readwrite' }).then(function(handle) {
-      FileAccess.saveDirHandle(handle).then(function() {
+      return FileAccess.saveDirHandle(handle, handleUsername).then(function() {
         self._updateWorkPathStatus();
         showToast('Work path set: ' + handle.name);
       });

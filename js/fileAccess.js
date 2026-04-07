@@ -136,19 +136,18 @@ var FileAccess = {
     this._encryptedConfig = json;
   },
 
-  /** 清除所有缓存和 IndexedDB 句柄 */
+  /** 清除所有缓存和 IndexedDB 句柄
+   * @param {string} [username] - 用户名，仅删除该用户对应的句柄
+   */
   clearAll: function(username) {
     this._rootDirHandle = null;
     this._handleKey = null;
     this._encryptedConfig = null;
-    var keysToDelete = username
-      ? ['dirHandle', 'dirHandle_' + username]
-      : ['dirHandle'];
+    var keyToDelete = username ? ('dirHandle_' + username) : 'dirHandle';
     return this._openDB().then(function(db) {
       return new Promise(function(resolve) {
         var tx = db.transaction(this._DB_STORE, 'readwrite');
-        var store = tx.objectStore(this._DB_STORE);
-        keysToDelete.forEach(function(key) { store.delete(key); });
+        tx.objectStore(this._DB_STORE).delete(keyToDelete);
         tx.oncomplete = function() { resolve(); };
         tx.onerror = function() { resolve(); };
       }.bind(this));

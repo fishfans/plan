@@ -347,11 +347,14 @@ function ensureWorkDirHandle() {
   var dirName = config && config.workDirName;
   if (!dirName || !window.showDirectoryPicker) return Promise.resolve();
 
+  var handleUsername = (state.currentUser && state.currentUser.role !== 'owner')
+    ? state.currentUser.username : null;
+
   return new Promise(function(resolve) {
     showConfirm('Select work directory: ' + dirName + '\n\nOK to open picker, Cancel to skip.', function(ok) {
       if (!ok) { resolve(); return; }
       window.showDirectoryPicker({ mode: 'readwrite' }).then(function(handle) {
-        return FileAccess.saveDirHandle(handle).then(function() {
+        return FileAccess.saveDirHandle(handle, handleUsername).then(function() {
           showToast('Work path set!');
         });
       }).then(function() { resolve(); }).catch(function(e) {

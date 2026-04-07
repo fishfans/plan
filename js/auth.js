@@ -51,10 +51,8 @@ var Auth = {
       // 尝试恢复本地工作目录句柄
       var handleUsername = isOwner ? null : username;
       var dirName = config.workDirName;
-      return FileAccess.getDirHandle(handleUsername).then(function(handle) {
-        if (handle) return FileAccess._ensurePermission();
-        // IndexedDB 无句柄，如果配置中记录了目录名则弹窗让用户选择
-        if (!dirName || !window.showDirectoryPicker) return;
+      var _pickDir = function() {
+        if (!window.showDirectoryPicker) return Promise.resolve();
         return window.showDirectoryPicker({ mode: 'readwrite' }).then(function(pickedHandle) {
           return FileAccess.saveDirHandle(pickedHandle, handleUsername).then(function() {
             showToast('Work path set: ' + pickedHandle.name);
@@ -62,6 +60,21 @@ var Auth = {
         }).catch(function(e) {
           if (e.name !== 'AbortError') showToast('Failed to pick directory: ' + e.message);
         });
+      };
+      return FileAccess.getDirHandle(handleUsername).then(function(handle) {
+        if (handle) {
+          // 句柄存在，检查权限；权限过期时提示用户重新选择
+          return FileAccess._ensurePermission().then(function(granted) {
+            if (granted) return;
+            // 权限被拒，清除内存中的无效句柄
+            FileAccess._rootDirHandle = null;
+            FileAccess._handleKey = null;
+            return _pickDir();
+          });
+        }
+        // IndexedDB 无句柄，如果配置中记录了目录名则弹窗让用户选择
+        if (!dirName) return;
+        return _pickDir();
       }).catch(function() {}).then(function() {
         return Auth._loadPlanData();
       });
@@ -251,6 +264,7 @@ var Auth = {
 
   logout: function() {
     GitHub.lock();
+    FileAccess.clearAll();
     state.currentUser = null;
     state.dataLoaded = false;
     state.dirty = false;
