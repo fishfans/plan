@@ -1,0 +1,88 @@
+{
+  "tags": [
+    {
+      "id": "tag_done",
+      "name": "Done",
+      "color": "#27ae60"
+    }
+  ],
+  "dates": {
+    "2026-05-17": {
+      "planSets": [
+        {
+          "id": "id_mp9te3ym_49avqv",
+          "title": "Finished",
+          "order": 1,
+          "_finished": true,
+          "items": [
+            {
+              "id": "id_mp9te20o_vfnhd8",
+              "content": "New Item",
+              "order": 0,
+              "tags": [
+                "tag_done"
+              ],
+              "doneAt": "2026-05-17T13:32:11.277Z"
+            },
+            {
+              "id": "id_mp9tfvtx_ojxa4v",
+              "content": "撸吗",
+              "tags": [
+                "tag_done"
+              ],
+              "order": 1,
+              "doneAt": "2026-05-17T13:33:41.109Z"
+            },
+            {
+              "id": "id_mp9tfusg_puvz03",
+              "content": "树胶",
+              "tags": [
+                "tag_done"
+              ],
+              "order": 2,
+              "doneAt": "2026-05-17T13:33:43.793Z"
+            }
+          ]
+        }
+      ]
+    },
+    "2026-05-18": {
+      "planSets": [
+        {
+          "id": "id_mp9tgimx_87lg4n",
+          "title": "New Plan",
+          "order": 0,
+          "items": [
+            {
+              "id": "id_mp9tgimx_kk518n",
+              "content": "吃放",
+              "order": 0,
+              "tags": []
+            }
+          ]
+        }
+      ]
+    },
+    "2026-05-19": {
+      "planSets": [
+        {
+          "id": "id_mp9tfm36_z2gi91",
+          "title": "New Plan",
+          "order": 0,
+          "items": [
+            {
+              "id": "id_mp9tfm36_7i40l0",
+              "content": "吃放",
+              "order": 0,
+              "tags": []
+            }
+          ]
+        }
+      ]
+    },
+    "2026-05-20": {
+      "planSets": []
+    }
+  },
+  "currentDate": "2026-05-17"
+}
