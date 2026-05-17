@@ -77,6 +77,7 @@
   document.querySelector('[data-action="next-date"]').addEventListener('click', function() { changeDate(1); });
   document.querySelector('[data-action="copy-day"]').addEventListener('click', copyToNextDay);
   document.querySelector('[data-action="change-date"]').addEventListener('click', openChangeDateModal);
+  document.querySelector('[data-action="clear-page"]').addEventListener('click', clearPage);
 
   // ---- Change Date 弹窗 ----
   document.getElementById('changedate-overlay').addEventListener('click', function(e) {

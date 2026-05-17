@@ -83,3 +83,19 @@ function closeChangeDateModal(confirmed) {
   render();
   showToast('Data moved to ' + formatDate(newDate));
 }
+
+function clearPage() {
+  var data = getCurrentDateData();
+  if (!data.planSets || !data.planSets.length) {
+    showToast('Page is already empty');
+    return;
+  }
+  showConfirm('Clear all plan sets on this page (including Finished)?', function(ok) {
+    if (!ok) return;
+    state.dates[state.currentDate].planSets = [];
+    state.selectedPlanSetId = null;
+    markDirty();
+    render();
+    showToast('Page cleared');
+  });
+}
