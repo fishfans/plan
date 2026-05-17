@@ -69,22 +69,36 @@
     "2026-05-19": {
       "planSets": [
         {
-          "id": "id_mp9wmbt2_ftbxd5",
-          "title": "New Plan",
-          "order": 1,
+          "id": "id_mp9woowf_z4205t",
+          "title": "Finished",
+          "order": -1,
+          "_finished": true,
           "items": [
             {
               "id": "id_mp9wmbt2_6vtl7v",
               "content": "洗澡",
-              "tags": [],
-              "order": 0
+              "tags": [
+                "tag_done"
+              ],
+              "order": 0,
+              "doneAt": "2026-05-17T15:04:23.823Z"
             },
             {
               "id": "id_mp9wmbt2_bwjicg",
               "content": "写稽核流程方案",
-              "tags": [],
-              "order": 1
-            },
+              "tags": [
+                "tag_done"
+              ],
+              "order": 1,
+              "doneAt": "2026-05-17T15:04:28.123Z"
+            }
+          ]
+        },
+        {
+          "id": "id_mp9wmbt2_ftbxd5",
+          "title": "New Plan",
+          "order": 1,
+          "items": [
             {
               "id": "id_mp9wmbt2_iezj93",
               "content": "开完这个可恶的会议",
