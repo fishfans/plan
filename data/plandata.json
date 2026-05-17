@@ -67,21 +67,7 @@
       ]
     },
     "2026-05-19": {
-      "planSets": [
-        {
-          "id": "id_mp9tfm36_z2gi91",
-          "title": "New Plan",
-          "order": 0,
-          "items": [
-            {
-              "id": "id_mp9tfm36_7i40l0",
-              "content": "吃放",
-              "order": 0,
-              "tags": []
-            }
-          ]
-        }
-      ]
+      "planSets": []
     },
     "2026-05-20": {
       "planSets": []
@@ -232,5 +218,5 @@
       ]
     }
   },
-  "currentDate": "2026-05-18"
+  "currentDate": "2026-05-19"
 }
