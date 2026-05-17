@@ -109,6 +109,15 @@
               ],
               "order": 3,
               "doneAt": "2026-05-17T14:59:39.342Z"
+            },
+            {
+              "id": "id_mp9w27ta_p868sq",
+              "content": "用智能体写ppt",
+              "tags": [
+                "tag_done"
+              ],
+              "order": 4,
+              "doneAt": "2026-05-17T14:59:59.276Z"
             }
           ]
         },
@@ -117,12 +126,6 @@
           "title": "New Plan",
           "order": 1,
           "items": [
-            {
-              "id": "id_mp9w27ta_p868sq",
-              "content": "用智能体写ppt",
-              "tags": [],
-              "order": 4
-            },
             {
               "id": "id_mp9w27ta_y92zg8",
               "content": "给王者农场浇水",
