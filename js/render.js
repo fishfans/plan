@@ -18,7 +18,11 @@ function renderPlanList() {
   }
   emptyState.style.display = 'none';
 
-  data.planSets.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
+  data.planSets.sort(function(a, b) {
+    if (a._finished && !b._finished) return -1;
+    if (!a._finished && b._finished) return 1;
+    return (a.order || 0) - (b.order || 0);
+  });
 
   var html = '';
   for (var i = 0; i < data.planSets.length; i++) {

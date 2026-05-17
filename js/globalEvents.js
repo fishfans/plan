@@ -447,10 +447,6 @@ function applyRemoteData(data) {
   state.dataLoaded = true;
   state.dirty = false;
   state.dataSource = 'remote';
-  // 缓存到本地
-  if (FileAccess.hasValidHandle()) {
-    Storage.saveLocal().catch(function() {});
-  }
   updateToggleUI();
   render();
 }

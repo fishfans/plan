@@ -125,11 +125,11 @@ function markItemDone(planSetId, itemId) {
     finishedSet = {
       id: uid(),
       title: 'Finished',
-      order: 9999,
+      order: -1,
       _finished: true,
       items: []
     };
-    data.planSets.push(finishedSet);
+    data.planSets.unshift(finishedSet);
   }
 
   doneItem.order = finishedSet.items.length;
