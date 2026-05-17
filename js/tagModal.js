@@ -17,13 +17,14 @@ function renderTagList() {
   var html = '';
   for (var i = 0; i < state.tags.length; i++) {
     var tag = state.tags[i];
+    if (tag.id === 'tag_done') continue; // skip built-in Done tag
     html += '<div class="tag-list-item" data-tag-id="' + tag.id + '">';
     html += '<input type="color" class="tag-color-input" value="' + tag.color + '" data-tag-id="' + tag.id + '">';
     html += '<input type="text" class="tag-name-input" value="' + escapeHtml(tag.name) + '" data-tag-id="' + tag.id + '">';
     html += '<span class="tag-remove" data-tag-id="' + tag.id + '">&times;</span>';
     html += '</div>';
   }
-  if (!state.tags.length) {
+  if (!html) {
     html = '<div style="text-align:center;color:#888;padding:8px;">No tags yet. Add one below!</div>';
   }
   container.innerHTML = html;
@@ -73,6 +74,7 @@ function addTag() {
 }
 
 function removeTag(tagId) {
+  if (tagId === 'tag_done') return; // cannot remove built-in Done tag
   for (var i = 0; i < state.tags.length; i++) {
     if (state.tags[i].id === tagId) { state.tags.splice(i, 1); break; }
   }

@@ -275,10 +275,7 @@ var Auth = {
     state.dataLoaded = false;
     state.dirty = false;
     state.tags = [
-      { id: 'tag_urgent', name: 'Urgent', color: '#e74c3c' },
-      { id: 'tag_important', name: 'Important', color: '#e67e22' },
-      { id: 'tag_normal', name: 'Normal', color: '#3498db' },
-      { id: 'tag_low', name: 'Low', color: '#27ae60' }
+      { id: 'tag_done', name: 'Done', color: '#27ae60' }
     ];
     state.dates = {};
     Settings.close();
