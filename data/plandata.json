@@ -1,0 +1,65 @@
+{
+  "tags": [
+    {
+      "id": "tag_urgent",
+      "name": "Urgent",
+      "color": "#e74c3c"
+    },
+    {
+      "id": "tag_important",
+      "name": "Important",
+      "color": "#e67e22"
+    },
+    {
+      "id": "tag_normal",
+      "name": "Normal",
+      "color": "#3498db"
+    },
+    {
+      "id": "tag_low",
+      "name": "Low",
+      "color": "#27ae60"
+    }
+  ],
+  "dates": {
+    "2026-04-07": {
+      "planSets": [
+        {
+          "id": "id_mnoo1vb8_08t4r3",
+          "title": "New Plan",
+          "order": 1,
+          "items": [
+            {
+              "id": "id_mnoo1vb8_7foqzu",
+              "content": "找工作",
+              "order": 0,
+              "tags": []
+            },
+            {
+              "id": "id_mnoo23d1_l0o0yt",
+              "content": "看电视",
+              "tags": [],
+              "order": 1
+            },
+            {
+              "id": "id_mnoo2dbu_p7af84",
+              "content": "玩猫",
+              "tags": [],
+              "order": 2
+            },
+            {
+              "id": "id_mnoo2guk_u17yub",
+              "content": "剃毛",
+              "tags": [],
+              "order": 3
+            }
+          ]
+        }
+      ]
+    },
+    "2026-04-06": {
+      "planSets": []
+    }
+  },
+  "currentDate": "2026-04-07"
+}
