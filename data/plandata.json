@@ -100,6 +100,15 @@
               ],
               "order": 2,
               "doneAt": "2026-05-17T14:59:12.759Z"
+            },
+            {
+              "id": "id_mp9w27ta_108u2x",
+              "content": "回小红书别人的私信",
+              "tags": [
+                "tag_done"
+              ],
+              "order": 3,
+              "doneAt": "2026-05-17T14:59:39.342Z"
             }
           ]
         },
@@ -108,12 +117,6 @@
           "title": "New Plan",
           "order": 1,
           "items": [
-            {
-              "id": "id_mp9w27ta_108u2x",
-              "content": "回小红书别人的私信",
-              "tags": [],
-              "order": 3
-            },
             {
               "id": "id_mp9w27ta_p868sq",
               "content": "用智能体写ppt",
