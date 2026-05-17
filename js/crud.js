@@ -37,7 +37,15 @@ function addPlanSet() {
       { id: uid(), content: 'New Item', order: 0, tags: [] }
     ]
   };
-  data.planSets.unshift(ps);
+  // Insert after Finished plan set to keep Finished at the top
+  var insertIdx = 0;
+  for (var i = 0; i < data.planSets.length; i++) {
+    if (data.planSets[i]._finished) {
+      insertIdx = i + 1;
+      break;
+    }
+  }
+  data.planSets.splice(insertIdx, 0, ps);
   for (var i = 0; i < data.planSets.length; i++) {
     data.planSets[i].order = i;
   }

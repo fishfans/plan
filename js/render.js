@@ -36,9 +36,7 @@ function renderPlanList() {
       html += '<span class="add-item-btn" title="Add item" data-set-id="' + ps.id + '"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg></span>';
     }
     html += '<div class="plan-set-title"' + (isFinished ? '' : ' contenteditable="true"') + ' data-set-id="' + ps.id + '">' + escapeHtml(ps.title) + '</div>';
-    if (!isFinished) {
-      html += '<span class="plan-set-delete" title="Delete" data-set-id="' + ps.id + '">&times;</span>';
-    }
+    html += '<span class="plan-set-delete" title="Delete" data-set-id="' + ps.id + '">&times;</span>';
     html += '</div>';
     html += '<div class="plan-items">';
     if (ps.items) {
