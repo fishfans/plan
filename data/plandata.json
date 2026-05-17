@@ -67,7 +67,68 @@
       ]
     },
     "2026-05-19": {
-      "planSets": []
+      "planSets": [
+        {
+          "id": "id_mp9w29y4_gaauwz",
+          "title": "Finished",
+          "order": -1,
+          "_finished": true,
+          "items": [
+            {
+              "id": "id_mp9w27ta_9mpb9l",
+              "content": "洗澡",
+              "tags": [
+                "tag_done"
+              ],
+              "order": 0,
+              "doneAt": "2026-05-17T14:46:58.012Z"
+            }
+          ]
+        },
+        {
+          "id": "id_mp9w27ta_09pral",
+          "title": "New Plan",
+          "order": 1,
+          "items": [
+            {
+              "id": "id_mp9w27ta_96a3zc",
+              "content": "写稽核流程方案",
+              "tags": [],
+              "order": 1
+            },
+            {
+              "id": "id_mp9w27ta_sckhj2",
+              "content": "开完这个可恶的会议",
+              "tags": [],
+              "order": 2
+            },
+            {
+              "id": "id_mp9w27ta_108u2x",
+              "content": "回小红书别人的私信",
+              "tags": [],
+              "order": 3
+            },
+            {
+              "id": "id_mp9w27ta_p868sq",
+              "content": "用智能体写ppt",
+              "tags": [],
+              "order": 4
+            },
+            {
+              "id": "id_mp9w27ta_y92zg8",
+              "content": "给王者农场浇水",
+              "tags": [],
+              "order": 5
+            },
+            {
+              "id": "id_mp9w27ta_uoi4ka",
+              "content": "希望家里猫没事",
+              "tags": [],
+              "order": 6
+            }
+          ]
+        }
+      ]
     },
     "2026-05-20": {
       "planSets": []
@@ -156,5 +217,5 @@
       ]
     }
   },
-  "currentDate": "2026-05-18"
+  "currentDate": "2026-05-19"
 }
