@@ -10,37 +10,57 @@
     "2026-05-17": {
       "planSets": [
         {
-          "id": "id_mp9te3ym_49avqv",
-          "title": "Finished",
+          "id": "id_mp9ufwbd_egz1mo",
+          "title": "New Plan",
           "order": 1,
-          "_finished": true,
           "items": [
             {
-              "id": "id_mp9te20o_vfnhd8",
-              "content": "New Item",
-              "order": 0,
-              "tags": [
-                "tag_done"
-              ],
-              "doneAt": "2026-05-17T13:32:11.277Z"
+              "id": "id_mp9ugcvm_r0r0lj",
+              "content": "洗澡",
+              "tags": [],
+              "order": 0
             },
             {
-              "id": "id_mp9tfvtx_ojxa4v",
-              "content": "撸吗",
-              "tags": [
-                "tag_done"
-              ],
-              "order": 1,
-              "doneAt": "2026-05-17T13:33:41.109Z"
+              "id": "id_mp9ugje8_p89xbx",
+              "content": "写稽核流程方案",
+              "tags": [],
+              "order": 1
             },
             {
-              "id": "id_mp9tfusg_puvz03",
-              "content": "树胶",
-              "tags": [
-                "tag_done"
-              ],
-              "order": 2,
-              "doneAt": "2026-05-17T13:33:43.793Z"
+              "id": "id_mp9ujzbk_1nac9q",
+              "content": "开完这个可恶的会议",
+              "tags": [],
+              "order": 2
+            },
+            {
+              "id": "id_mp9uks2d_vgoauv",
+              "content": "回小红书别人的私信",
+              "tags": [],
+              "order": 3
+            },
+            {
+              "id": "id_mp9ugrtx_2qguwp",
+              "content": "用智能体写ppt",
+              "tags": [],
+              "order": 4
+            },
+            {
+              "id": "id_mp9ulhkp_2vufjk",
+              "content": "给王者农场浇水",
+              "tags": [],
+              "order": 5
+            },
+            {
+              "id": "id_mp9um878_o1vi5m",
+              "content": "希望家里猫没事",
+              "tags": [],
+              "order": 6
+            },
+            {
+              "id": "id_mp9ump9o_ls4p6s",
+              "content": "",
+              "tags": [],
+              "order": 7
             }
           ]
         }
