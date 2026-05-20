@@ -15,8 +15,8 @@ var Auth = {
 
     return UserRegistry.fetchUserConfigBlob(isOwner ? null : username).then(function(blobText) {
       if (!blobText) {
-        if (isOwner) throw new Error('No owner config found');
-        throw new Error('User "' + username + '" not found');
+        if (isOwner) throw new Error(i18n.t('auth.noOwnerConfig') || 'No owner config found');
+        throw new Error(i18n.t('auth.userNotFound', { username: username }) || 'User "' + username + '" not found');
       }
       return Auth._decryptAndInit(blobText, password, username, isOwner);
     });
@@ -29,7 +29,7 @@ var Auth = {
   _decryptAndInit: function(blobText, password, username, isOwner) {
     var encryptedObj;
     try { encryptedObj = JSON.parse(blobText); }
-    catch (e) { throw new Error('Config file is corrupted'); }
+    catch (e) { throw new Error(i18n.t('auth.configCorrupted') || 'Config file is corrupted'); }
 
     return Crypto.decrypt(encryptedObj, password).then(function(decrypted) {
       var config = JSON.parse(decrypted);
@@ -75,7 +75,7 @@ var Auth = {
           WorkPathModal.show({
             mode: 'select',
             onSelect: function(pickedHandle) {
-              showToast('Work path set: ' + pickedHandle.name);
+              showToast(i18n.t('msg.workPathSet') + pickedHandle.name);
               resolve();
             },
             onCancel: function() { resolve(); }
@@ -95,20 +95,20 @@ var Auth = {
     return GitHub.fetchPlanData().then(function(data) {
       if (data) {
         (window._app && window._app.applyRemoteData || applyRemoteData)(data);
-        showToast('Welcome, ' + (state.currentUser ? state.currentUser.username : '') + '!');
+        showToast(i18n.t('msg.welcome') + (state.currentUser ? state.currentUser.username : '') + '!');
       } else {
         if (FileAccess.hasValidHandle()) {
           return Storage.loadLocalPlanData().then(function(loaded) {
             if (loaded) {
               state.dataSource = 'local';
               (window._app && window._app.updateToggleUI || updateToggleUI)();
-              showToast('No remote data. Loaded local data.');
+              showToast(i18n.t('msg.noRemoteDataLoadedLocal'));
             }
             (window._app && window._app.render || render)();
           });
         }
         (window._app && window._app.render || render)();
-        showToast('No existing plan data. Start fresh!');
+        showToast(i18n.t('msg.startFresh'));
       }
     }).catch(function(err) {
       if (FileAccess.hasValidHandle()) {
@@ -116,13 +116,13 @@ var Auth = {
           if (loaded) {
             state.dataSource = 'local';
             (window._app && window._app.updateToggleUI || updateToggleUI)();
-            showToast('GitHub failed. Loaded local data.');
+            showToast(i18n.t('msg.githubFailedLoadedLocal'));
           }
           (window._app && window._app.render || render)();
         });
       }
       (window._app && window._app.render || render)();
-      showToast('Failed to load plan data: ' + (err.message || err));
+      showToast(i18n.t('msg.failedToLoad') + (err.message || err));
     });
   },
 
@@ -135,7 +135,6 @@ var Auth = {
    * @returns {Promise}
    */
   registerOwner: function(regInfo, password) {
-    console.log('[DEBUG registerOwner] 开始主人注册');
     var ownerConfig = {
       owner: regInfo.owner,
       repo: regInfo.repo,
@@ -151,11 +150,9 @@ var Auth = {
     // 加密
     return Crypto.encrypt(JSON.stringify(ownerConfig), password).then(function(encryptedObj) {
       var encryptedJson = JSON.stringify(encryptedObj, null, 2);
-      console.log('[DEBUG registerOwner] 加密完成');
 
       // 保存到本地工作路径 config.json
       return FileAccess.writeLocalFile('config.json', encryptedJson).then(function() {
-        console.log('[DEBUG registerOwner] 本地保存成功');
         FileAccess.updateConfigCache(encryptedJson);
 
         // 推送到远程 data/config.json
@@ -166,8 +163,6 @@ var Auth = {
           token: regInfo.token
         };
         return GitHub.pushFile(repoConfig, 'data/config.json', encryptedJson, 'Owner registration');
-      }).then(function() {
-        console.log('[DEBUG registerOwner] 远程推送成功');
       });
     });
   },
@@ -180,7 +175,6 @@ var Auth = {
    */
   registerUserStep1: function(regInfo, password) {
     var username = regInfo.username;
-    console.log('[DEBUG registerUserStep1] 开始, username:', username);
 
     var userConfig = {
       owner: regInfo.owner,
@@ -196,11 +190,9 @@ var Auth = {
 
     return Crypto.encrypt(JSON.stringify(userConfig), password).then(function(encryptedObj) {
       var encryptedJson = JSON.stringify(encryptedObj, null, 2);
-      console.log('[DEBUG registerUserStep1] 加密完成');
 
       // 保存到本地工作路径 config.json
       return FileAccess.writeLocalFile('config.json', encryptedJson).then(function() {
-        console.log('[DEBUG registerUserStep1] 本地保存成功');
         FileAccess.updateConfigCache(encryptedJson);
 
         // 推送到用户仓库 username/config.json
@@ -210,12 +202,9 @@ var Auth = {
           branch: regInfo.branch || 'main',
           token: regInfo.token
         };
-        console.log('[DEBUG registerUserStep1] 推送到', repoConfig.owner + '/' + repoConfig.repo,
-          username + '/config.json');
         return GitHub.pushFileWithTree(repoConfig, username + '/config.json', encryptedJson,
           'Register user: ' + username);
       }).then(function() {
-        console.log('[DEBUG registerUserStep1] 远程推送成功');
         return encryptedJson;
       });
     });
@@ -230,24 +219,20 @@ var Auth = {
    */
   registerUserStep2: function(regInfo, ownerPassword, encryptedJson) {
     var username = regInfo.username;
-    console.log('[DEBUG registerUserStep2] 开始, username:', username);
 
     // 1. 获取主人配置
-    console.log('[DEBUG registerUserStep2] 获取主人配置...');
     return UserRegistry.fetchUserConfigBlob(null).then(function(blobText) {
-      if (!blobText) throw new Error('No owner config found');
+      if (!blobText) throw new Error(i18n.t('auth.noOwnerConfig') || 'No owner config found');
       var encryptedObj = JSON.parse(blobText);
       // 2. 用主人密码解密验证
       return Crypto.decrypt(encryptedObj, ownerPassword).then(function(decrypted) {
         var ownerConfig = JSON.parse(decrypted);
-        console.log('[DEBUG registerUserStep2] 主人密码验证成功, owner/repo:',
-          ownerConfig.owner + '/' + ownerConfig.repo);
         return ownerConfig;
       });
     }).then(function(ownerConfig) {
       // 3. 检查用户名是否已存在
       return UserRegistry.checkUserExists(username, ownerConfig).then(function(exists) {
-        if (exists) throw new Error('Username "' + username + '" is already taken');
+        if (exists) throw new Error(i18n.t('auth.usernameTaken', { username: username }) || 'Username "' + username + '" is already taken');
         return ownerConfig;
       });
     }).then(function(ownerConfig) {
@@ -258,11 +243,7 @@ var Auth = {
         branch: ownerConfig.branch || 'main',
         token: ownerConfig.token
       };
-      console.log('[DEBUG registerUserStep2] 推送 users/' + username + '.json 到',
-        safeOwnerConfig.owner + '/' + safeOwnerConfig.repo);
       return UserRegistry.registerUser(username, encryptedJson, safeOwnerConfig);
-    }).then(function() {
-      console.log('[DEBUG registerUserStep2] 注册完成!');
     });
   },
 

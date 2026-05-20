@@ -30,12 +30,12 @@ function exportJSON() {
   var data = getExportData();
   var json = JSON.stringify(data, null, 2);
   downloadFile('plandata.json', json, 'application/json');
-  showToast('JSON exported!');
+  showToast(i18n.t('msg.jsonExported'));
 }
 
 function exportZIP() {
   closeExportMenu();
-  showToast('Generating ZIP...');
+  showToast(i18n.t('msg.generatingZip'));
 
   var zip = new JSZip();
   zip.file('plandata.json', JSON.stringify(getExportData(), null, 2));
@@ -49,7 +49,7 @@ function exportZIP() {
   if (!dateKeys.length) {
     zip.generateAsync({ type: 'blob' }).then(function(blob) {
       downloadBlob('plan_export.zip', blob);
-      showToast('ZIP exported!');
+      showToast(i18n.t('msg.zipExported'));
     });
     return;
   }
@@ -58,7 +58,7 @@ function exportZIP() {
     if (processed >= dateKeys.length) {
       zip.generateAsync({ type: 'blob' }).then(function(blob) {
         downloadBlob('plan_export.zip', blob);
-        showToast('ZIP exported!');
+        showToast(i18n.t('msg.zipExported'));
       });
       return;
     }

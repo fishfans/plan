@@ -18,9 +18,9 @@ function doImport(e) {
       state.selectedPlanSetId = null;
       markDirty();
       render();
-      showToast('Imported successfully!');
+      showToast(i18n.t('msg.imported'));
     } catch(err) {
-      showToast('Invalid JSON file!');
+      showToast(i18n.t('msg.invalidJSON'));
     }
   };
   reader.readAsText(file);
@@ -31,10 +31,10 @@ function addPlanSet() {
   var data = getCurrentDateData();
   var ps = {
     id: uid(),
-    title: 'New Plan',
+    title: i18n.t('plan.newPlan'),
     order: 0,
     items: [
-      { id: uid(), content: 'New Item', order: 0, tags: [] }
+      { id: uid(), content: i18n.t('plan.newItem'), order: 0, tags: [] }
     ]
   };
   // Insert after Finished plan set to keep Finished at the top
@@ -62,7 +62,7 @@ function addPlanItem(planSetId, insertAfterItemId) {
   if (!ps) return;
   if (!ps.items) ps.items = [];
   var newId = uid();
-  var newItem = { id: newId, content: 'New Item', tags: [] };
+  var newItem = { id: newId, content: i18n.t('plan.newItem'), tags: [] };
   if (insertAfterItemId) {
     var insertIdx = -1;
     for (var j = 0; j < ps.items.length; j++) {
