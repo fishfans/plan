@@ -574,8 +574,18 @@ html, body {
 .plan-item-undo:hover { color: var(--color-tag-normal); }
 
 /* ========== Plan Item Drag ========== */
-.plan-item[draggable="true"] {
+.item-drag-handle {
   cursor: grab;
+  font-size: 14px;
+  color: var(--color-light);
+  padding: 0 2px;
+  user-select: none;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+.item-drag-handle:hover { color: var(--color-dark); }
+.plan-item[draggable="true"] {
+  cursor: default;
 }
 .plan-item.drag-placeholder {
   visibility: hidden;

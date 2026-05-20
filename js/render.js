@@ -76,6 +76,7 @@ function renderPlanList() {
           html += '<span class="plan-item-undo" title="' + i18n.t('finished.undo') + '" data-set-id="' + ps.id + '" data-item-id="' + item.id + '" data-source-set-id="' + (item._sourcePlanSetId || '') + '">&#8594;</span>';
         } else {
           html += '<span class="tag-toggle" data-set-id="' + ps.id + '" data-item-id="' + item.id + '">&#9660;</span>';
+          html += '<span class="item-drag-handle" style="display:none;" title="Drag to reorder">&#9776;</span>';
           html += '<span class="plan-item-body">';
           html += '<span class="plan-item-content" contenteditable="true" data-set-id="' + ps.id + '" data-item-id="' + item.id + '">' + escapeHtml(item.content) + '</span>';
           html += '<span class="tag-container">';
@@ -118,6 +119,7 @@ function bindPlanSetEvents() {
       el.addEventListener('click', function(e) {
         if (e.target.closest('.drag-handle') || e.target.closest('.add-item-btn') || e.target.closest('.plan-set-delete')
           || e.target.closest('.tag-toggle') || e.target.closest('.plan-item-delete') || e.target.closest('.plan-item-undo')
+          || e.target.closest('.item-drag-handle')
           || e.target.getAttribute('contenteditable') === 'true') return;
         if (el.classList.contains('finished-set')) return; // cannot select Finished set
         state.selectedPlanSetId = el.getAttribute('data-id');

@@ -416,8 +416,7 @@ var i18n = {
   toggle: function() {
     this._lang = this._lang === 'en' ? 'zh' : 'en';
     localStorage.setItem('plan_lang', this._lang);
-    this.apply();
-    render();
+    try { render(); } catch(e) { console.error('[i18n toggle render error]', e); }
   },
 
   t: function(key, replacements) {
@@ -433,6 +432,7 @@ var i18n = {
   },
 
   apply: function() {
+    try {
     // Toolbar
     var titleEl = document.querySelector('#toolbar .title');
     if (titleEl) titleEl.textContent = this.t('toolbar.title');
@@ -611,5 +611,6 @@ var i18n = {
 
     // Toggle source UI
     updateToggleUI();
+    } catch(e) { console.error('[i18n apply error]', e); }
   }
 };

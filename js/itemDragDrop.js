@@ -1,5 +1,5 @@
 // ==================== Plan Item 拖拽排序 (Continuous Swap) ====================
-// Double-click on a plan item content to start dragging, same logic as plan set drag
+// 双击 plan-item 后出现拖拽手柄，拖拽手柄按住即可拖拽，逻辑与 plan set 完全一致
 
 var itemDragState = {
   active: false,
@@ -8,65 +8,41 @@ var itemDragState = {
   draggedElHeight: 0,
   startY: 0,
   planSetId: null,
-  itemId: null
+  itemId: null,
+  allowDrag: false
 };
 
 function setupItemDragAndDrop() {
-  // Find all plan item content elements within non-finished plan sets
-  var items = document.querySelectorAll('.plan-set:not(.finished-set) .plan-item-content');
+  var items = document.querySelectorAll('.plan-set:not(.finished-set) .plan-item');
   for (var i = 0; i < items.length; i++) {
     (function(el) {
-      el.addEventListener('dblclick', function(e) {
-        // Only start drag if not already in contenteditable selection mode
-        // The first dblclick selects text, the second one starts drag
-        var planItem = el.closest('.plan-item');
-        if (!planItem) return;
+      var handle = el.querySelector('.item-drag-handle');
+      var content = el.querySelector('.plan-item-content');
 
-        // Find the parent plan-items container
-        var itemsContainer = planItem.closest('.plan-items');
-        var planSet = planItem.closest('.plan-set');
-        if (!itemsContainer || !planSet) return;
+      // 双击显示拖拽手柄
+      if (content) {
+        content.addEventListener('dblclick', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          // 显示这个 item 的拖拽手柄
+          showItemDragHandle(el);
+        });
+      }
 
-        var planSetId = planSet.getAttribute('data-id');
-        var itemId = planItem.getAttribute('data-item-id');
+      // 如果已有拖拽手柄，绑定事件
+      if (handle) {
+        handle.addEventListener('mousedown', function(e) {
+          itemDragState.allowDrag = true;
+          itemDragState.startY = e.clientY;
+          var planSet = el.closest('.plan-set');
+          itemDragState.planSetId = planSet ? planSet.getAttribute('data-id') : null;
+          itemDragState.itemId = el.getAttribute('data-item-id');
+        });
+      }
 
-        // Make this item draggable
-        planItem.setAttribute('draggable', 'true');
-
-        // Set up drag state
-        itemDragState.planSetId = planSetId;
-        itemDragState.itemId = itemId;
-
-        // Programmatically trigger drag
-        // We use a small delay to allow the dblclick text selection to complete
-        setTimeout(function() {
-          planItem.setAttribute('draggable', 'true');
-        }, 10);
-      });
-
-      // mousedown to track start position
-      el.addEventListener('mousedown', function(e) {
-        var planItem = el.closest('.plan-item');
-        if (!planItem) return;
-        var itemsContainer = planItem.closest('.plan-items');
-        if (!itemsContainer) return;
-
-        var planSet = planItem.closest('.plan-set');
-        if (!planSet) return;
-
-        itemDragState.startY = e.clientY;
-        itemDragState.planSetId = planSet.getAttribute('data-id');
-        itemDragState.itemId = planItem.getAttribute('data-item-id');
-      });
-    })(items[i]);
-  }
-
-  // Set up dragstart/dragend on plan items
-  var planItems = document.querySelectorAll('.plan-set:not(.finished-set) .plan-item');
-  for (var i = 0; i < planItems.length; i++) {
-    (function(el) {
+      // dragstart - 只有 allowDrag 时才允许拖拽
       el.addEventListener('dragstart', function(e) {
-        if (!itemDragState.planSetId) {
+        if (!itemDragState.allowDrag) {
           e.preventDefault();
           return;
         }
@@ -86,6 +62,8 @@ function setupItemDragAndDrop() {
         requestAnimationFrame(function() {
           el.classList.add('drag-placeholder');
         });
+
+        itemDragState.allowDrag = false;
       });
 
       el.addEventListener('dragend', function() {
@@ -95,18 +73,24 @@ function setupItemDragAndDrop() {
       el.addEventListener('dragover', function(e) {
         e.preventDefault();
       });
-    })(planItems[i]);
+
+      // 点击其他地方隐藏拖拽手柄
+      el.addEventListener('click', function(e) {
+        if (!e.target.closest('.item-drag-handle')) {
+          hideItemDragHandle(el);
+        }
+      });
+    })(items[i]);
   }
 
   // Container-level dragover and drop
-  var planSets = document.querySelectorAll('.plan-set:not(.finished-set) .plan-items');
-  for (var i = 0; i < planSets.length; i++) {
+  var containers = document.querySelectorAll('.plan-set:not(.finished-set) .plan-items');
+  for (var i = 0; i < containers.length; i++) {
     (function(container) {
       container.addEventListener('dragover', function(e) {
         e.preventDefault();
         if (!itemDragState.active) return;
 
-        // Only allow drag within the same plan set
         var currentSet = itemDragState.draggedEl && itemDragState.draggedEl.closest('.plan-items');
         if (currentSet !== container) return;
 
@@ -116,11 +100,13 @@ function setupItemDragAndDrop() {
 
         // Auto-scroll
         var mainEl = document.getElementById('main-content');
-        var mainRect = mainEl.getBoundingClientRect();
-        if (e.clientY - mainRect.top < 60) {
-          mainEl.scrollTop -= 10;
-        } else if (mainRect.bottom - e.clientY < 60) {
-          mainEl.scrollTop += 10;
+        if (mainEl) {
+          var mainRect = mainEl.getBoundingClientRect();
+          if (e.clientY - mainRect.top < 60) {
+            mainEl.scrollTop -= 10;
+          } else if (mainRect.bottom - e.clientY < 60) {
+            mainEl.scrollTop += 10;
+          }
         }
       });
 
@@ -145,7 +131,6 @@ function setupItemDragAndDrop() {
         var ps = findPlanSet(planSetId);
         if (!ps || !ps.items) { finishItemDrag(); return; }
 
-        // Sort items by order first
         ps.items.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
 
         if (finalIdx >= ps.items.length) finalIdx = ps.items.length - 1;
@@ -161,7 +146,42 @@ function setupItemDragAndDrop() {
         markDirty();
         render();
       });
-    })(planSets[i]);
+    })(containers[i]);
+  }
+
+  // 点击 plan-list 空白区域隐藏所有拖拽手柄
+  document.getElementById('plan-list').addEventListener('click', function(e) {
+    if (!e.target.closest('.item-drag-handle')) {
+      hideAllItemDragHandles();
+    }
+  });
+}
+
+function showItemDragHandle(itemEl) {
+  // 先隐藏其他 item 的拖拽手柄
+  hideAllItemDragHandles();
+  var handle = itemEl.querySelector('.item-drag-handle');
+  if (handle) {
+    handle.style.display = '';
+    // 设为可拖拽
+    itemEl.setAttribute('draggable', 'true');
+  }
+}
+
+function hideItemDragHandle(itemEl) {
+  var handle = itemEl.querySelector('.item-drag-handle');
+  if (handle) {
+    handle.style.display = 'none';
+    itemEl.removeAttribute('draggable');
+  }
+}
+
+function hideAllItemDragHandles() {
+  var handles = document.querySelectorAll('.item-drag-handle');
+  for (var i = 0; i < handles.length; i++) {
+    handles[i].style.display = 'none';
+    var item = handles[i].closest('.plan-item');
+    if (item) item.removeAttribute('draggable');
   }
 }
 
@@ -205,6 +225,7 @@ function finishItemDrag() {
       }
     }
   }
+  hideAllItemDragHandles();
   itemDragState.active = false;
   itemDragState.draggedEl = null;
   itemDragState.draggedOrigIndex = -1;
@@ -212,4 +233,5 @@ function finishItemDrag() {
   itemDragState.startY = 0;
   itemDragState.planSetId = null;
   itemDragState.itemId = null;
+  itemDragState.allowDrag = false;
 }
