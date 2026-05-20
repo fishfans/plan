@@ -21,11 +21,17 @@ function copyToNextDay() {
     showToast('No plan sets to copy');
     return;
   }
+  // Filter out Finished plan set
+  var setsToCopy = data.planSets.filter(function(ps) { return !ps._finished; });
+  if (!setsToCopy.length) {
+    showToast('No plan sets to copy');
+    return;
+  }
   var nextDate = shiftDate(state.currentDate, 1);
   if (!state.dates[nextDate]) {
     state.dates[nextDate] = { planSets: [] };
   }
-  state.dates[nextDate].planSets = JSON.parse(JSON.stringify(data.planSets));
+  state.dates[nextDate].planSets = JSON.parse(JSON.stringify(setsToCopy));
   var planSets = state.dates[nextDate].planSets;
   for (var i = 0; i < planSets.length; i++) {
     planSets[i].id = uid();
@@ -53,19 +59,43 @@ function closeChangeDateModal(confirmed) {
     return;
   }
   var data = getCurrentDateData();
-  if (!data.planSets || !data.planSets.length) {
+  // Separate Finished and normal plan sets
+  var setsToMove = data.planSets.filter(function(ps) { return !ps._finished; });
+  var finishedSets = data.planSets.filter(function(ps) { return !!ps._finished; });
+  if (!setsToMove.length) {
     showToast('No data to move on current date');
     return;
   }
   if (!state.dates[newDate]) {
     state.dates[newDate] = { planSets: [] };
   }
-  state.dates[newDate].planSets = state.dates[newDate].planSets.concat(JSON.parse(JSON.stringify(data.planSets)));
-  delete state.dates[state.currentDate];
+  state.dates[newDate].planSets = state.dates[newDate].planSets.concat(JSON.parse(JSON.stringify(setsToMove)));
+  // Keep Finished set on current date if it exists
+  if (finishedSets.length > 0) {
+    state.dates[state.currentDate].planSets = finishedSets;
+  } else {
+    delete state.dates[state.currentDate];
+  }
   state.currentDate = newDate;
   state.selectedPlanSetId = null;
   state.dataLoaded = true;
   markDirty();
   render();
   showToast('Data moved to ' + formatDate(newDate));
+}
+
+function clearPage() {
+  var data = getCurrentDateData();
+  if (!data.planSets || !data.planSets.length) {
+    showToast('Page is already empty');
+    return;
+  }
+  showConfirm('Clear all plan sets on this page (including Finished)?', function(ok) {
+    if (!ok) return;
+    state.dates[state.currentDate].planSets = [];
+    state.selectedPlanSetId = null;
+    markDirty();
+    render();
+    showToast('Page cleared');
+  });
 }

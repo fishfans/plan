@@ -77,6 +77,7 @@
   document.querySelector('[data-action="next-date"]').addEventListener('click', function() { changeDate(1); });
   document.querySelector('[data-action="copy-day"]').addEventListener('click', copyToNextDay);
   document.querySelector('[data-action="change-date"]').addEventListener('click', openChangeDateModal);
+  document.querySelector('[data-action="clear-page"]').addEventListener('click', clearPage);
 
   // ---- Change Date 弹窗 ----
   document.getElementById('changedate-overlay').addEventListener('click', function(e) {
@@ -446,10 +447,6 @@ function applyRemoteData(data) {
   state.dataLoaded = true;
   state.dirty = false;
   state.dataSource = 'remote';
-  // 缓存到本地
-  if (FileAccess.hasValidHandle()) {
-    Storage.saveLocal().catch(function() {});
-  }
   updateToggleUI();
   render();
 }

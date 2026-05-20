@@ -135,3 +135,8 @@ submit 改为 save remote
 普通类型放在users/username。其他主人的普通用户放在主人仓库的users目录下。读取的时候先从berlinlancho获取data/username/config.json，
 然后就是再读取其他主人仓库下users下的目录进行交互。
 好像也不需要，其他主人提供自己的token给普通用户不就好了吗？
+
+# 增加交互逻辑 20260517
+1. 修改默认的itme tag，默认只有一个 done 标记为绿色, 不可以修改的。
+2. 当有一个item被标记为done之后，会在当前日期page创建一个名字为Finished的plan set，然后被标记done的item会被移动到这个plan set 里面 显示为灰色带删除线 在itme内容后面还会显示标记为done的时间。标记为done之后不可逆。
+3. 当点击copy to next date 或者是chage date 移动的时候, plan set Finished不会被复制或者移动到下一页。

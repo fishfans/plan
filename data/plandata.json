@@ -21,9 +21,9 @@
       "color": "#2c2aa2"
     },
     {
-      "id": "id_mncxgnpl_mdh55i",
-      "name": "done",
-      "color": "#7fcf4a"
+      "id": "tag_done",
+      "name": "Done",
+      "color": "#27ae60"
     }
   ],
   "dates": {
