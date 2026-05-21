@@ -573,8 +573,27 @@ html, body {
 .finished-set .plan-item:hover .plan-item-undo { opacity: 1; }
 .plan-item-undo:hover { color: var(--color-tag-normal); }
 
-/* ========== Plan Item Drag ========== */
+/* ========== Reorder Mode Button (M) ========== */
+.reorder-btn {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--color-light);
+  padding: 0 4px;
+  user-select: none;
+  transition: color 0.2s, background 0.2s;
+  border-radius: 4px;
+  line-height: 20px;
+}
+.reorder-btn:hover { color: var(--color-dark); background: rgba(0,0,0,0.05); }
+.plan-set.reorder-mode .reorder-btn {
+  color: #3498db;
+  background: rgba(52,152,219,0.1);
+}
+
+/* ========== Plan Item Drag Handle ========== */
 .item-drag-handle {
+  display: none;
   cursor: grab;
   font-size: 14px;
   color: var(--color-light);
@@ -583,10 +602,10 @@ html, body {
   flex-shrink: 0;
   transition: color 0.2s;
 }
-.item-drag-handle:hover { color: var(--color-dark); }
-.plan-item[draggable="true"] {
-  cursor: default;
+.plan-set.reorder-mode .item-drag-handle {
+  display: inline-block;
 }
+.item-drag-handle:hover { color: var(--color-dark); }
 .plan-item.drag-placeholder {
   visibility: hidden;
 }

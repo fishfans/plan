@@ -1,56 +1,45 @@
 // ==================== Plan Item 拖拽排序 (Continuous Swap) ====================
-// 双击 plan-item 后出现拖拽手柄，拖拽手柄按住即可拖拽，逻辑与 plan set 完全一致
+// 点击 plan-set header 的 M 按钮进入 reorder-mode，每个 item 出现 ≡ 手柄
+// 按住 ≡ 手柄拖拽，逻辑与 plan-set 拖拽完全一致
 
+var itemAllowDrag = false;
 var itemDragState = {
   active: false,
   draggedEl: null,
   draggedOrigIndex: -1,
   draggedElHeight: 0,
   startY: 0,
-  planSetId: null,
-  itemId: null,
-  allowDrag: false
+  planSetId: null
 };
 
 function setupItemDragAndDrop() {
-  var items = document.querySelectorAll('.plan-set:not(.finished-set) .plan-item');
+  // 找到所有 reorder-mode 下的 plan-item
+  var items = document.querySelectorAll('.plan-set.reorder-mode .plan-item');
   for (var i = 0; i < items.length; i++) {
     (function(el) {
+      // 给 item 设 draggable
+      el.setAttribute('draggable', 'true');
+
       var handle = el.querySelector('.item-drag-handle');
-      var content = el.querySelector('.plan-item-content');
-
-      // 双击显示拖拽手柄
-      if (content) {
-        content.addEventListener('dblclick', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          // 显示这个 item 的拖拽手柄
-          showItemDragHandle(el);
-        });
-      }
-
-      // 如果已有拖拽手柄，绑定事件
       if (handle) {
         handle.addEventListener('mousedown', function(e) {
-          itemDragState.allowDrag = true;
+          itemAllowDrag = true;
           itemDragState.startY = e.clientY;
           var planSet = el.closest('.plan-set');
           itemDragState.planSetId = planSet ? planSet.getAttribute('data-id') : null;
-          itemDragState.itemId = el.getAttribute('data-item-id');
         });
       }
 
-      // dragstart - 只有 allowDrag 时才允许拖拽
       el.addEventListener('dragstart', function(e) {
-        if (!itemDragState.allowDrag) {
+        if (!itemAllowDrag) {
           e.preventDefault();
           return;
         }
 
-        var itemsContainer = el.closest('.plan-items');
-        if (!itemsContainer) { e.preventDefault(); return; }
+        var container = el.closest('.plan-items');
+        if (!container) { e.preventDefault(); return; }
 
-        var allItems = itemsContainer.querySelectorAll(':scope > .plan-item');
+        var allItems = container.querySelectorAll(':scope > .plan-item');
         itemDragState.active = true;
         itemDragState.draggedEl = el;
         itemDragState.draggedOrigIndex = Array.prototype.indexOf.call(allItems, el);
@@ -63,7 +52,7 @@ function setupItemDragAndDrop() {
           el.classList.add('drag-placeholder');
         });
 
-        itemDragState.allowDrag = false;
+        itemAllowDrag = false;
       });
 
       el.addEventListener('dragend', function() {
@@ -73,26 +62,19 @@ function setupItemDragAndDrop() {
       el.addEventListener('dragover', function(e) {
         e.preventDefault();
       });
-
-      // 点击其他地方隐藏拖拽手柄
-      el.addEventListener('click', function(e) {
-        if (!e.target.closest('.item-drag-handle')) {
-          hideItemDragHandle(el);
-        }
-      });
     })(items[i]);
   }
 
-  // Container-level dragover and drop
-  var containers = document.querySelectorAll('.plan-set:not(.finished-set) .plan-items');
+  // Container-level dragover 和 drop
+  var containers = document.querySelectorAll('.plan-set.reorder-mode .plan-items');
   for (var i = 0; i < containers.length; i++) {
     (function(container) {
       container.addEventListener('dragover', function(e) {
         e.preventDefault();
         if (!itemDragState.active) return;
 
-        var currentSet = itemDragState.draggedEl && itemDragState.draggedEl.closest('.plan-items');
-        if (currentSet !== container) return;
+        var currentContainer = itemDragState.draggedEl && itemDragState.draggedEl.closest('.plan-items');
+        if (currentContainer !== container) return;
 
         e.dataTransfer.dropEffect = 'move';
         var deltaY = e.clientY - itemDragState.startY;
@@ -114,8 +96,8 @@ function setupItemDragAndDrop() {
         e.preventDefault();
         if (!itemDragState.active) return;
 
-        var currentSet = itemDragState.draggedEl && itemDragState.draggedEl.closest('.plan-items');
-        if (currentSet !== container) { finishItemDrag(); return; }
+        var currentContainer = itemDragState.draggedEl && itemDragState.draggedEl.closest('.plan-items');
+        if (currentContainer !== container) { finishItemDrag(); return; }
 
         var deltaY = e.clientY - itemDragState.startY;
         var h = itemDragState.draggedElHeight;
@@ -147,41 +129,6 @@ function setupItemDragAndDrop() {
         render();
       });
     })(containers[i]);
-  }
-
-  // 点击 plan-list 空白区域隐藏所有拖拽手柄
-  document.getElementById('plan-list').addEventListener('click', function(e) {
-    if (!e.target.closest('.item-drag-handle')) {
-      hideAllItemDragHandles();
-    }
-  });
-}
-
-function showItemDragHandle(itemEl) {
-  // 先隐藏其他 item 的拖拽手柄
-  hideAllItemDragHandles();
-  var handle = itemEl.querySelector('.item-drag-handle');
-  if (handle) {
-    handle.style.display = '';
-    // 设为可拖拽
-    itemEl.setAttribute('draggable', 'true');
-  }
-}
-
-function hideItemDragHandle(itemEl) {
-  var handle = itemEl.querySelector('.item-drag-handle');
-  if (handle) {
-    handle.style.display = 'none';
-    itemEl.removeAttribute('draggable');
-  }
-}
-
-function hideAllItemDragHandles() {
-  var handles = document.querySelectorAll('.item-drag-handle');
-  for (var i = 0; i < handles.length; i++) {
-    handles[i].style.display = 'none';
-    var item = handles[i].closest('.plan-item');
-    if (item) item.removeAttribute('draggable');
   }
 }
 
@@ -217,7 +164,6 @@ function finishItemDrag() {
         allItems[i].style.transform = '';
         allItems[i].classList.remove('drag-placeholder');
         allItems[i].classList.remove('dragging');
-        allItems[i].removeAttribute('draggable');
       }
       container.offsetHeight; // force reflow
       for (var i = 0; i < allItems.length; i++) {
@@ -225,13 +171,11 @@ function finishItemDrag() {
       }
     }
   }
-  hideAllItemDragHandles();
   itemDragState.active = false;
   itemDragState.draggedEl = null;
   itemDragState.draggedOrigIndex = -1;
   itemDragState.draggedElHeight = 0;
   itemDragState.startY = 0;
   itemDragState.planSetId = null;
-  itemDragState.itemId = null;
-  itemDragState.allowDrag = false;
+  itemAllowDrag = false;
 }

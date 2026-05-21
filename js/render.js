@@ -39,9 +39,11 @@ function renderPlanList() {
     if (isFinished) {
       html += '<span style="width:28px;display:inline-block;"></span>'; // placeholder for drag-handle
       html += '<span style="width:28px;display:inline-block;"></span>'; // placeholder for add-item-btn
+      html += '<span style="width:28px;display:inline-block;"></span>'; // placeholder for reorder-btn
     } else {
       html += '<span class="drag-handle" title="Drag to reorder">&#9776;</span>';
       html += '<span class="add-item-btn" title="Add item" data-set-id="' + ps.id + '"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg></span>';
+      html += '<span class="reorder-btn" title="Reorder items" data-set-id="' + ps.id + '">M</span>';
     }
     html += '<div class="plan-set-title"' + (isFinished ? '' : ' contenteditable="true"') + ' data-set-id="' + ps.id + '">' + escapeHtml(setTitle) + '</div>';
     html += '<span class="plan-set-delete" title="Delete" data-set-id="' + ps.id + '">&times;</span>';
@@ -76,7 +78,7 @@ function renderPlanList() {
           html += '<span class="plan-item-undo" title="' + i18n.t('finished.undo') + '" data-set-id="' + ps.id + '" data-item-id="' + item.id + '" data-source-set-id="' + (item._sourcePlanSetId || '') + '">&#8594;</span>';
         } else {
           html += '<span class="tag-toggle" data-set-id="' + ps.id + '" data-item-id="' + item.id + '">&#9660;</span>';
-          html += '<span class="item-drag-handle" style="display:none;" title="Drag to reorder">&#9776;</span>';
+          html += '<span class="item-drag-handle" title="Drag to reorder">&#9776;</span>';
           html += '<span class="plan-item-body">';
           html += '<span class="plan-item-content" contenteditable="true" data-set-id="' + ps.id + '" data-item-id="' + item.id + '">' + escapeHtml(item.content) + '</span>';
           html += '<span class="tag-container">';
@@ -119,7 +121,7 @@ function bindPlanSetEvents() {
       el.addEventListener('click', function(e) {
         if (e.target.closest('.drag-handle') || e.target.closest('.add-item-btn') || e.target.closest('.plan-set-delete')
           || e.target.closest('.tag-toggle') || e.target.closest('.plan-item-delete') || e.target.closest('.plan-item-undo')
-          || e.target.closest('.item-drag-handle')
+          || e.target.closest('.reorder-btn') || e.target.closest('.item-drag-handle')
           || e.target.getAttribute('contenteditable') === 'true') return;
         if (el.classList.contains('finished-set')) return; // cannot select Finished set
         state.selectedPlanSetId = el.getAttribute('data-id');
@@ -243,6 +245,20 @@ function bindPlanSetEvents() {
         addPlanItem(el.getAttribute('data-set-id'));
       });
     })(addBtns[i]);
+  }
+
+  // Reorder mode button (M) - toggle reorder mode for a plan set
+  var reorderBtns = document.querySelectorAll('.reorder-btn');
+  for (var i = 0; i < reorderBtns.length; i++) {
+    (function(el) {
+      el.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var planSet = el.closest('.plan-set');
+        if (planSet) {
+          planSet.classList.toggle('reorder-mode');
+        }
+      });
+    })(reorderBtns[i]);
   }
 
   setupDragAndDrop();
