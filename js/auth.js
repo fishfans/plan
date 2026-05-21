@@ -247,6 +247,38 @@ var Auth = {
     });
   },
 
+  // ==================== 注册后直接初始化 ====================
+
+  /**
+   * 注册成功后直接初始化（不需要重新 fetch config）
+   * 注册时已经设置了 GitHub._config 和缓存了加密配置
+   * @param {string} password - 注册时使用的密码
+   * @param {Object} [options] - 可选参数
+   * @param {string} [options.username] - 用户名（主人传 null）
+   * @param {boolean} [options.isOwner] - 是否主人
+   */
+  initAfterRegister: function(password, options) {
+    options = options || {};
+    var isOwner = options.isOwner !== false;
+    var username = options.username || null;
+    var config = GitHub._config;
+
+    if (!config) {
+      return Promise.reject('No config in memory after registration');
+    }
+
+    state.currentUser = {
+      username: config.username || (isOwner ? 'owner' : username),
+      role: config.role || (isOwner ? 'owner' : 'user'),
+      configPath: isOwner ? 'data/config.json' : ('users/' + username + '.json')
+    };
+
+    GitHub.setMemoryPassword(password);
+
+    // 加载计划数据
+    return Auth._loadPlanData();
+  },
+
   // ==================== 登出 ====================
 
   logout: function() {

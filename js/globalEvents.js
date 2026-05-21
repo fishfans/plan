@@ -200,16 +200,23 @@
 
 /**
  * 应用启动认证流程：
- * 1. 检测环境（file:// 本地 / https GitHub Pages）
- * 2. 弹出带用户名的密码框
- * 3. 根据用户名解密对应配置 → 加载数据
+ * 1. 检测环境（localhost 本地 / https GitHub Pages）
+ * 2. 本地模式：直接选择文件夹加载本地数据
+ * 3. GitHub Pages 模式：弹窗输入用户名+密码，成功加载远程数据，失败提示选择本地文件夹
  */
+function isLocalEnv() {
+  if (location.protocol === 'file:') return true;
+  var host = location.hostname;
+  return host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+}
+
 function startAuth() {
-  state.isLocalMode = location.protocol === 'file:';
+  state.isLocalMode = isLocalEnv();
   state.currentUser = null;
 
   if (state.isLocalMode) {
-    startLocalAuth();
+    // 本地模式：直接选择文件夹加载本地数据
+    _loadConfigAndLocalData(i18n.t('msg.localDataLoaded'));
   } else {
     startWebAuth();
   }
@@ -234,74 +241,6 @@ function startWebAuth() {
       // 跳过 → 提示选择本地文件夹
       fallbackToLocalWithFolderSelection();
     }
-  });
-}
-
-function startLocalAuth() {
-  PasswordModal.show({
-    title: i18n.t('login.title'),
-    message: i18n.t('login.localMessage'),
-    mode: 'unlock',
-    showUsername: true,
-    cancelText: i18n.t('login.cancelLocal'),
-    onOk: function(password, username) {
-      if (!username && !password) {
-        // 都为空 → 直接进入离线模式
-        render();
-        return;
-      }
-      if (!username) {
-        // 无用户名有密码 → 尝试作为主人本地登录
-        tryLocalOwnerLogin(password);
-        return;
-      }
-      // 有用户名 → 尝试在线登录
-      showToast(i18n.t('msg.loading'));
-      Auth.login(username, password).then(function() {
-        // 登录成功
-      }).catch(function(err) {
-        showToast(err.message || i18n.t('login.failed'));
-        // 失败后提示选择本地文件夹，加载本地数据
-        fallbackToLocalWithFolderSelection();
-      });
-    },
-    onCancel: function() {
-      // 跳过 → 离线模式
-      render();
-    }
-  });
-}
-
-function tryLocalOwnerLogin(password) {
-  FileAccess.getDirHandle(null).then(function(handle) {
-    if (!handle) {
-      showToast(i18n.t('msg.noLocalWorkPath'));
-      fallbackToLocalWithFolderSelection();
-      return;
-    }
-    return FileAccess.readLocalFile('config.json').then(function(configText) {
-      if (!configText) {
-        showToast(i18n.t('msg.noLocalConfig'));
-        fallbackToLocal();
-        return;
-      }
-      FileAccess.updateConfigCache(configText);
-      GitHub.unlock(password).then(function() {
-        return GitHub.fetchPlanData().then(function(data) {
-          if (data) {
-            applyRemoteData(data);
-            showToast(i18n.t('msg.loadedFromGithub'));
-          } else {
-            fallbackToLocal();
-          }
-        });
-      }).catch(function() {
-        showToast(i18n.t('msg.wrongPassword'));
-        fallbackToLocalWithFolderSelection();
-      });
-    });
-  }).catch(function() {
-    fallbackToLocalWithFolderSelection();
   });
 }
 

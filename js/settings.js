@@ -343,7 +343,7 @@ var Settings = {
             Auth.registerOwner(regInfo, password).then(function() {
               showToast(i18n.t('settings.ownerRegistered'));
               self.close();
-              Auth.login(null, password).catch(function(err) {
+              Auth.initAfterRegister(password, { isOwner: true }).catch(function(err) {
                 showToast(i18n.t('settings.autoLoginFailed') + err.message);
               });
             }).catch(function(err) {
@@ -372,7 +372,7 @@ var Settings = {
                     .then(function() {
                       showToast(i18n.t('settings.registeredAs') + regInfo.username + '"!');
                       self.close();
-                      Auth.login(regInfo.username, password).catch(function(err) {
+                      Auth.initAfterRegister(password, { isOwner: false, username: regInfo.username }).catch(function(err) {
                         showToast(i18n.t('settings.autoLoginFailed') + err.message);
                       });
                     })
