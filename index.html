@@ -613,6 +613,9 @@ html, body {
   pointer-events: none;
 }
 .item-drag-handle:hover { color: var(--color-dark); }
+.plan-item {
+  transition: border-color 0.2s, background 0.2s, transform 0.15s ease;
+}
 .plan-item.drag-placeholder {
   visibility: hidden;
 }
@@ -621,6 +624,11 @@ html, body {
 }
 .plan-item.no-transition {
   transition: none !important;
+}
+.item-drag-placeholder {
+  border: 2px dashed #bbb;
+  background: rgba(0,0,0,0.03);
+  opacity: 0.5;
 }
 
 /* ========== 密码弹窗 ========== */
