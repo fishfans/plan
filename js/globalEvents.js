@@ -461,12 +461,17 @@ function fallbackToLocal() {
     render();
     return;
   }
-  Storage.loadLocalPlanData().then(function(loaded) {
-    if (loaded) {
-      state.dataSource = 'local';
-      updateToggleUI();
-    }
-    render();
+  // 先尝试加载本地 config.json 到内存缓存
+  FileAccess.readLocalFile('config.json').then(function(configText) {
+    if (configText) FileAccess.updateConfigCache(configText);
+  }).catch(function() {}).then(function() {
+    return Storage.loadLocalPlanData().then(function(loaded) {
+      if (loaded) {
+        state.dataSource = 'local';
+        updateToggleUI();
+      }
+      render();
+    });
   });
 }
 
@@ -478,32 +483,14 @@ function fallbackToLocal() {
 function fallbackToLocalWithFolderSelection() {
   if (FileAccess.hasValidHandle()) {
     // 已有句柄，直接加载本地数据
-    Storage.loadLocalPlanData().then(function(loaded) {
-      if (loaded) {
-        state.dataSource = 'local';
-        updateToggleUI();
-        showToast(i18n.t('msg.loginFailedUseLocal'));
-      } else {
-        showToast(i18n.t('msg.loginFailedNoLocal'));
-      }
-      render();
-    });
+    _loadConfigAndLocalData(i18n.t('msg.loginFailedUseLocal'));
   } else if (window.showDirectoryPicker) {
     // 无句柄，弹出文件夹选择弹窗
     WorkPathModal.show({
       mode: 'select',
       onSelect: function(handle) {
         // 用户选择了文件夹，加载本地数据
-        Storage.loadLocalPlanData().then(function(loaded) {
-          if (loaded) {
-            state.dataSource = 'local';
-            updateToggleUI();
-            showToast(i18n.t('msg.loginFailedUseLocal'));
-          } else {
-            showToast(i18n.t('msg.loginFailedNoLocal'));
-          }
-          render();
-        });
+        _loadConfigAndLocalData(i18n.t('msg.loginFailedUseLocal'));
       },
       onCancel: function() {
         // 用户取消选择，直接渲染空状态
@@ -515,6 +502,24 @@ function fallbackToLocalWithFolderSelection() {
     showToast(i18n.t('msg.loginFailedNoLocal'));
     render();
   }
+}
+
+/** 加载本地 config.json 缓存到内存，然后加载 plandata.json */
+function _loadConfigAndLocalData(successMsg) {
+  FileAccess.readLocalFile('config.json').then(function(configText) {
+    if (configText) FileAccess.updateConfigCache(configText);
+  }).catch(function() {}).then(function() {
+    return Storage.loadLocalPlanData().then(function(loaded) {
+      if (loaded) {
+        state.dataSource = 'local';
+        updateToggleUI();
+        if (successMsg) showToast(successMsg);
+      } else {
+        showToast(i18n.t('msg.loginFailedNoLocal'));
+      }
+      render();
+    });
+  });
 }
 
 // 暴露给 auth.js 等外部模块使用的全局函数
@@ -650,7 +655,13 @@ function toggleDataSource() {
         cancelText: i18n.t('login.cancelLocal'),
         onOk: function(password) {
           GitHub.unlock(password).then(function() { doSwitch(); })
-            .catch(function() { showToast(i18n.t('msg.wrongPassword')); });
+            .catch(function(e) {
+              if (e === 'No config loaded' || (e && e.message === 'No config loaded')) {
+                showToast(i18n.t('msg.noLocalConfig'));
+              } else {
+                showToast(i18n.t('msg.wrongPassword'));
+              }
+            });
         }
       });
     } else {
