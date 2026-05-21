@@ -34,7 +34,7 @@ function renderPlanList() {
     var isFinished = !!ps._finished;
     var setTitle = isFinished ? i18n.t('finished.title') : (ps.title || i18n.t('plan.untitled'));
 
-    html += '<div class="plan-set sketch-box' + (isSelected ? ' selected' : '') + (isFinished ? ' finished-set' : '') + '" data-id="' + ps.id + '"' + (isFinished ? '' : ' draggable="true"') + '>';
+    html += '<div class="plan-set sketch-box' + (isSelected ? ' selected' : '') + (isFinished ? ' finished-set' : '') + (ps.id === state.reorderPlanSetId ? ' reorder-mode' : '') + '" data-id="' + ps.id + '"' + (isFinished ? '' : ' draggable="true"') + '>';
     html += '<div class="plan-set-header">';
     if (isFinished) {
       html += '<span style="width:28px;display:inline-block;"></span>'; // placeholder for drag-handle
@@ -255,8 +255,14 @@ function bindPlanSetEvents() {
         e.stopPropagation();
         var planSet = el.closest('.plan-set');
         if (planSet) {
+          var setId = planSet.getAttribute('data-id');
+          if (state.reorderPlanSetId === setId) {
+            state.reorderPlanSetId = null; // 退出 reorder-mode
+          } else {
+            state.reorderPlanSetId = setId; // 进入 reorder-mode
+          }
           planSet.classList.toggle('reorder-mode');
-          // 重新绑定拖拽事件（因为 setupItemDragAndDrop 只找 reorder-mode 下的元素）
+          // 重新绑定拖拽事件
           setupItemDragAndDrop();
         }
       });
