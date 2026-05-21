@@ -209,10 +209,8 @@ function startAuth() {
   state.currentUser = null;
 
   if (state.isLocalMode) {
-    // 本地模式：先尝试从本地加载，失败则弹窗
     startLocalAuth();
   } else {
-    // GitHub Pages 模式：弹窗输入用户名+密码
     startWebAuth();
   }
 }
@@ -223,23 +221,23 @@ function startWebAuth() {
     message: i18n.t('login.webMessage'),
     mode: 'unlock',
     showUsername: true,
-    cancelText: i18n.t('login.cancelWeb'),
+    cancelText: i18n.t('login.cancelLocal'),
     onOk: function(password, username) {
       showToast(i18n.t('msg.loading'));
       Auth.login(username, password).catch(function(err) {
         showToast(err.message || i18n.t('login.failed'));
-        // 失败后重新弹窗
-        setTimeout(startWebAuth, 600);
+        // 失败后提示选择本地文件夹，加载本地数据
+        fallbackToLocalWithFolderSelection();
       });
     },
     onCancel: function() {
-      render();
+      // 跳过 → 提示选择本地文件夹
+      fallbackToLocalWithFolderSelection();
     }
   });
 }
 
 function startLocalAuth() {
-  // 本地模式也支持用户名输入（方便以后切换）
   PasswordModal.show({
     title: i18n.t('login.title'),
     message: i18n.t('login.localMessage'),
@@ -263,7 +261,8 @@ function startLocalAuth() {
         // 登录成功
       }).catch(function(err) {
         showToast(err.message || i18n.t('login.failed'));
-        setTimeout(startLocalAuth, 600);
+        // 失败后提示选择本地文件夹，加载本地数据
+        fallbackToLocalWithFolderSelection();
       });
     },
     onCancel: function() {
@@ -277,13 +276,13 @@ function tryLocalOwnerLogin(password) {
   FileAccess.getDirHandle(null).then(function(handle) {
     if (!handle) {
       showToast(i18n.t('msg.noLocalWorkPath'));
-      render();
+      fallbackToLocalWithFolderSelection();
       return;
     }
     return FileAccess.readLocalFile('config.json').then(function(configText) {
       if (!configText) {
         showToast(i18n.t('msg.noLocalConfig'));
-        render();
+        fallbackToLocal();
         return;
       }
       FileAccess.updateConfigCache(configText);
@@ -298,11 +297,11 @@ function tryLocalOwnerLogin(password) {
         });
       }).catch(function() {
         showToast(i18n.t('msg.wrongPassword'));
-        setTimeout(startLocalAuth, 600);
+        fallbackToLocalWithFolderSelection();
       });
     });
   }).catch(function() {
-    render();
+    fallbackToLocalWithFolderSelection();
   });
 }
 
@@ -471,10 +470,58 @@ function fallbackToLocal() {
   });
 }
 
+/**
+ * 登录失败后：提示用户选择本地文件夹 → 加载本地数据
+ * 如果已有有效句柄，直接加载本地数据
+ * 如果没有，弹出 WorkPathModal 让用户选择文件夹
+ */
+function fallbackToLocalWithFolderSelection() {
+  if (FileAccess.hasValidHandle()) {
+    // 已有句柄，直接加载本地数据
+    Storage.loadLocalPlanData().then(function(loaded) {
+      if (loaded) {
+        state.dataSource = 'local';
+        updateToggleUI();
+        showToast(i18n.t('msg.loginFailedUseLocal'));
+      } else {
+        showToast(i18n.t('msg.loginFailedNoLocal'));
+      }
+      render();
+    });
+  } else if (window.showDirectoryPicker) {
+    // 无句柄，弹出文件夹选择弹窗
+    WorkPathModal.show({
+      mode: 'select',
+      onSelect: function(handle) {
+        // 用户选择了文件夹，加载本地数据
+        Storage.loadLocalPlanData().then(function(loaded) {
+          if (loaded) {
+            state.dataSource = 'local';
+            updateToggleUI();
+            showToast(i18n.t('msg.loginFailedUseLocal'));
+          } else {
+            showToast(i18n.t('msg.loginFailedNoLocal'));
+          }
+          render();
+        });
+      },
+      onCancel: function() {
+        // 用户取消选择，直接渲染空状态
+        render();
+      }
+    });
+  } else {
+    // 浏览器不支持目录选择 API
+    showToast(i18n.t('msg.loginFailedNoLocal'));
+    render();
+  }
+}
+
 // 暴露给 auth.js 等外部模块使用的全局函数
 window._app = {
   applyRemoteData: applyRemoteData,
   fallbackToLocal: fallbackToLocal,
+  fallbackToLocalWithFolderSelection: fallbackToLocalWithFolderSelection,
   updateToggleUI: updateToggleUI,
   render: render,
   showToast: showToast,
@@ -515,7 +562,7 @@ function handleSaveRemote() {
         title: i18n.t('password.title'),
         message: i18n.t('login.webMessage'),
         mode: 'unlock',
-        cancelText: i18n.t('login.cancelWeb'),
+        cancelText: i18n.t('login.cancelLocal'),
         onOk: function(password) {
           GitHub.unlock(password).then(function() {
             doRemoteSave();
@@ -600,7 +647,7 @@ function toggleDataSource() {
         title: i18n.t('password.title'),
         message: i18n.t('login.webMessage'),
         mode: 'unlock',
-        cancelText: i18n.t('login.cancelWeb'),
+        cancelText: i18n.t('login.cancelLocal'),
         onOk: function(password) {
           GitHub.unlock(password).then(function() { doSwitch(); })
             .catch(function() { showToast(i18n.t('msg.wrongPassword')); });

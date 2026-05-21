@@ -1,7 +1,7 @@
 // ==================== 国际化 (i18n) ====================
 
 var i18n = {
-  _lang: 'en', // default language
+  _lang: 'zh', // default language
   _strings: {
     zh: {
       // Toolbar
@@ -155,7 +155,12 @@ var i18n = {
       'login.cancelWeb': '取消',
       'login.cancelLocal': '跳过（离线）',
       'login.failed': '登录失败',
+      'login.failedFallback': '登录失败，是否选择本地文件夹加载本地数据？',
+      'login.fallbackCancel': '取消（离线）',
       'msg.loading': '加载中...',
+      'msg.loginFailedUseLocal': '登录失败，已加载本地数据',
+      'msg.loginFailedNoLocal': '登录失败，未找到本地数据',
+      'msg.localDataLoaded': '已加载本地数据！',
 
       // Auth messages
       'msg.loadedFromGithub': '从 GitHub 加载！',
@@ -169,6 +174,7 @@ var i18n = {
       'workPath.title': '~ 本地工作路径 ~',
       'workPath.authorizeMessage': '找到已有工作路径："{dirName}"。是否授权访问以支持离线存储？',
       'workPath.selectMessage': '需要本地工作路径来存储计划数据以供离线访问。\n点击 "选择" 选择一个目录。',
+      'workPath.localModeMessage': '选择一个本地文件夹来加载计划数据。',
       'workPath.skip': '跳过',
       'workPath.select': '选择',
       'workPath.authorize': '授权',
@@ -353,7 +359,12 @@ var i18n = {
       'login.cancelWeb': 'Cancel',
       'login.cancelLocal': 'Skip (Offline)',
       'login.failed': 'Login failed',
+      'login.failedFallback': 'Login failed. Select a local folder to load local data?',
+      'login.fallbackCancel': 'Cancel (Offline)',
       'msg.loading': 'Loading...',
+      'msg.loginFailedUseLocal': 'Login failed. Loaded local data.',
+      'msg.loginFailedNoLocal': 'Login failed. No local data found.',
+      'msg.localDataLoaded': 'Local data loaded!',
 
       // Auth messages
       'msg.loadedFromGithub': 'Loaded from GitHub!',
@@ -367,6 +378,7 @@ var i18n = {
       'workPath.title': '~ Local Work Path ~',
       'workPath.authorizeMessage': 'Found existing work path: "{dirName}". Authorize access for offline storage?',
       'workPath.selectMessage': 'A local work path is needed to store your plan data locally for offline access.\nClick "Select" to choose a directory.',
+      'workPath.localModeMessage': 'Select a local folder to load plan data.',
       'workPath.skip': 'Skip',
       'workPath.select': 'Select',
       'workPath.authorize': 'Authorize',
