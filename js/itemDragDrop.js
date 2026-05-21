@@ -1,15 +1,13 @@
-// ==================== Plan Item 拖拽排序 (纯 mousemove + transform 动画) ====================
+// ==================== Plan Item 拖拽排序 (相邻交换 + CSS 动画) ====================
 // 点击 M 按钮 → reorder-mode → 出现 ≡ → 按住 ≡ 拖拽
-// 拖拽过程用 transform: translateY() 做平滑动画，drop 时才真正移动 DOM
+// 核心：鼠标超过相邻 item 中点时，两者交换 DOM 位置 + CSS transition 动画
 
 var itemDragState = {
   dragging: false,
-  clone: null,       // 跟随鼠标的克隆元素
-  origEl: null,      // 原位置元素（visibility:hidden 占位）
-  origIndex: -1,     // 原始 DOM 索引
-  offsetY: 0,        // 鼠标在 item 顶部的偏移
-  elHeight: 0,       // item 高度
-  startY: 0,         // 鼠标按下时的 Y
+  clone: null,
+  origEl: null,
+  origIndex: -1,
+  offsetY: 0,
   planSetId: null,
   container: null
 };
@@ -40,13 +38,11 @@ function setupItemDragAndDrop() {
           origEl: item,
           origIndex: origIndex,
           offsetY: e.clientY - rect.top,
-          elHeight: rect.height,
-          startY: e.clientY,
           planSetId: planSet.getAttribute('data-id'),
           container: container
         };
 
-        // 原位置保持占位（hidden）
+        // 原位置 hidden 占位
         item.classList.add('drag-placeholder');
 
         // 创建克隆跟随鼠标
@@ -82,30 +78,50 @@ function onItemDragMove(e) {
   // 移动克隆跟随鼠标
   st.clone.style.top = (e.clientY - st.offsetY) + 'px';
 
-  // 计算位移了几个位置
-  var deltaY = e.clientY - st.startY;
-  var positionsMoved = Math.round(deltaY / st.elHeight);
   var allItems = st.container.querySelectorAll(':scope > .plan-item');
-  var count = allItems.length - 1;
-  positionsMoved = Math.max(-st.origIndex, Math.min(count - st.origIndex, positionsMoved));
 
-  // 用 transform 让被经过的 item 平移
-  for (var i = 0; i < allItems.length; i++) {
-    if (i === st.origIndex) continue;
+  // 向下：鼠标超过下一个 item 的中点 → 交换
+  if (st.origIndex < allItems.length - 1) {
+    var next = allItems[st.origIndex + 1];
+    var nextRect = next.getBoundingClientRect();
+    if (e.clientY > nextRect.top + nextRect.height / 2) {
+      // 先记录两个元素的当前位置
+      var origRect = st.origEl.getBoundingClientRect();
+      var deltaY = origRect.top - nextRect.top; // > 0: next 在 orig 上方
 
-    var el = allItems[i];
-    var shift = 0;
+      // DOM 交换
+      st.container.insertBefore(st.origEl, next.nextSibling);
 
-    // 被拖拽者从上往下经过的 item（在 origIndex 和 origIndex+positionsMoved 之间）
-    if (positionsMoved > 0 && i > st.origIndex && i <= st.origIndex + positionsMoved) {
-      shift = -st.elHeight;
+      // 用 transform 动画：让 next 从旧位置滑到新位置
+      // DOM 换完后 next 现在在 origEl 原来的位置，但它视觉上还在旧位置
+      // 所以给 next 一个 -deltaY 的 transform，然后清除让它动画归位
+      next.style.transform = 'translateY(' + deltaY + 'px)';
+      next.offsetHeight; // force reflow
+      next.style.transform = '';
+      st.origIndex++;
     }
-    // 被拖拽者从下往上经过的 item（在 origIndex+positionsMoved 和 origIndex 之间）
-    if (positionsMoved < 0 && i >= st.origIndex + positionsMoved && i < st.origIndex) {
-      shift = st.elHeight;
-    }
+  }
 
-    el.style.transform = shift !== 0 ? 'translateY(' + shift + 'px)' : '';
+  // 向上：鼠标超过上一个 item 的中点 → 交换
+  if (st.origIndex > 0) {
+    var prev = allItems[st.origIndex - 1];
+    var prevRect = prev.getBoundingClientRect();
+    if (e.clientY < prevRect.top + prevRect.height / 2) {
+      // 先记录两个元素的当前位置
+      var origRect = st.origEl.getBoundingClientRect();
+      var deltaY = prevRect.top - origRect.top; // < 0: prev 在 orig 下方
+
+      // DOM 交换
+      st.container.insertBefore(st.origEl, prev);
+
+      // 用 transform 动画：让 prev 从旧位置滑到新位置
+      // DOM 换完后 prev 现在在 origEl 原来的位置，但它视觉上还在旧位置
+      // 所以给 prev 一个 -deltaY 的 transform，然后清除让它动画归位
+      prev.style.transform = 'translateY(' + (-deltaY) + 'px)';
+      prev.offsetHeight; // force reflow
+      prev.style.transform = '';
+      st.origIndex--;
+    }
   }
 
   // Auto-scroll
@@ -130,40 +146,8 @@ function onItemDragEnd(e) {
     st.clone.parentNode.removeChild(st.clone);
   }
 
-  // 瞬间清除所有 transform（先禁用 transition）
-  var allItems = st.container.querySelectorAll(':scope > .plan-item');
-  for (var i = 0; i < allItems.length; i++) {
-    allItems[i].classList.add('no-transition');
-    allItems[i].style.transform = '';
-  }
-  st.container.offsetHeight; // force reflow
-  for (var i = 0; i < allItems.length; i++) {
-    allItems[i].classList.remove('no-transition');
-  }
-
-  // 计算最终位置
-  var deltaY = e.clientY - st.startY;
-  var positionsMoved = Math.round(deltaY / st.elHeight);
-  var count = allItems.length - 1;
-  positionsMoved = Math.max(-st.origIndex, Math.min(count - st.origIndex, positionsMoved));
-  var finalIndex = st.origIndex + positionsMoved;
-
   // 恢复原始 item 可见
   st.origEl.classList.remove('drag-placeholder');
-
-  // 在 DOM 中移动到最终位置
-  if (finalIndex !== st.origIndex && finalIndex >= 0) {
-    var parent = st.container;
-    // 获取当前所有 item（DOM 顺序）
-    var currentItems = parent.querySelectorAll(':scope > .plan-item');
-    if (finalIndex >= currentItems.length) finalIndex = currentItems.length - 1;
-
-    if (finalIndex === 0) {
-      parent.insertBefore(st.origEl, currentItems[0]);
-    } else {
-      parent.insertBefore(st.origEl, currentItems[finalIndex].nextSibling);
-    }
-  }
 
   // 按最终 DOM 顺序更新数据 model
   var ps = findPlanSet(st.planSetId);
@@ -195,8 +179,6 @@ function onItemDragEnd(e) {
     origEl: null,
     origIndex: -1,
     offsetY: 0,
-    elHeight: 0,
-    startY: 0,
     planSetId: null,
     container: null
   };
