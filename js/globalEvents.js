@@ -216,7 +216,7 @@ function startAuth() {
 
   if (state.isLocalMode) {
     // 本地模式：直接选择文件夹加载本地数据
-    _loadConfigAndLocalData(i18n.t('msg.localDataLoaded'));
+    fallbackToLocalWithFolderSelection();
   } else {
     startWebAuth();
   }
@@ -556,7 +556,8 @@ function toggleDataSource() {
   if (state.dataSource === 'remote') {
     // 切换到本地
     if (!FileAccess.hasValidHandle()) {
-      showToast(i18n.t('msg.noLocalPathShort'));
+      // 没有本地路径，弹窗让用户选择
+      _loadConfigAndLocalData(i18n.t('msg.switchedToLocal'));
       return;
     }
     Storage.loadLocalPlanData().then(function(loaded) {
