@@ -6,13 +6,9 @@ var itemDragState = {
   dragging: false,
   el: null,
   placeholder: null,
-  startY: 0,
   offsetY: 0,
-  origIndex: -1,
-  elHeight: 0,
   planSetId: null,
-  container: null,
-  items: []
+  container: null
 };
 
 function setupItemDragAndDrop() {
@@ -31,38 +27,26 @@ function setupItemDragAndDrop() {
         var planSet = handle.closest('.plan-set');
         if (!item || !container || !planSet) return;
 
-        var allItems = container.querySelectorAll(':scope > .plan-item');
-        var idx = Array.prototype.indexOf.call(allItems, item);
+        var rect = item.getBoundingClientRect();
 
         // 创建占位符
-        var rect = item.getBoundingClientRect();
-        var containerRect = container.getBoundingClientRect();
         var placeholder = document.createElement('div');
-        placeholder.className = 'plan-item';
+        placeholder.className = 'plan-item item-drag-placeholder';
         placeholder.style.height = rect.height + 'px';
-        placeholder.style.border = '2px dashed #ccc';
-        placeholder.style.background = 'rgba(0,0,0,0.03)';
-        placeholder.style.borderRadius = '255px 15px 225px 15px / 15px 225px 15px 255px';
-        placeholder.style.marginBottom = '8px';
-        placeholder.style.opacity = '0.6';
 
         itemDragState = {
           dragging: true,
           el: item,
           placeholder: placeholder,
-          startY: e.clientY,
           offsetY: e.clientY - rect.top,
-          origIndex: idx,
-          elHeight: rect.height,
           planSetId: planSet.getAttribute('data-id'),
-          container: container,
-          items: Array.prototype.slice.call(allItems)
+          container: container
         };
 
-        // 把占位符插入到 item 原位置
+        // 占位符插入到 item 原位置
         item.parentNode.insertBefore(placeholder, item);
 
-        // 把 item 变成 fixed 定位跟随鼠标
+        // item 变 fixed 跟随鼠标
         item.style.position = 'fixed';
         item.style.left = rect.left + 'px';
         item.style.top = rect.top + 'px';
@@ -71,15 +55,14 @@ function setupItemDragAndDrop() {
         item.style.opacity = '0.85';
         item.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
         item.style.pointerEvents = 'none';
-
         document.body.appendChild(item);
       });
     })(handles[i]);
   }
 
-  // 只绑定一次全局 mousemove 和 mouseup
-  if (!itemDragState._globalBound) {
-    itemDragState._globalBound = true;
+  // 全局 mousemove/mouseup 只绑一次
+  if (!setupItemDragAndDrop._bound) {
+    setupItemDragAndDrop._bound = true;
     document.addEventListener('mousemove', onItemDragMove);
     document.addEventListener('mouseup', onItemDragEnd);
   }
@@ -89,45 +72,30 @@ function onItemDragMove(e) {
   if (!itemDragState.dragging) return;
 
   var st = itemDragState;
-  var y = e.clientY - st.offsetY;
 
-  // 移动被拖拽元素
-  st.el.style.top = y + 'px';
+  // 移动 item 跟随鼠标
+  st.el.style.top = (e.clientY - st.offsetY) + 'px';
 
-  // 计算应该插入到哪个位置
-  var containerRect = st.container.getBoundingClientRect();
-  var relativeY = e.clientY - containerRect.top + st.container.scrollTop;
+  // 获取容器里所有子元素（不含被拖走那个，含 placeholder）
+  var children = st.container.children;
+  // 用 getBoundingClientRect 比较鼠标位置
+  var placeholderRect = st.placeholder.getBoundingClientRect();
+  var placeholderMid = placeholderRect.top + placeholderRect.height / 2;
 
-  // 找到最近的 item 位置
-  var items = st.items;
-  var targetIndex = st.origIndex;
-  for (var i = 0; i < items.length; i++) {
-    if (items[i] === st.placeholder) continue;
-    var itemRect = items[i].getBoundingClientRect();
-    var itemMid = itemRect.top + itemRect.height / 2;
-    if (i < st.origIndex && e.clientY < itemMid) {
-      targetIndex = i;
-      break;
-    }
-    if (i > st.origIndex && e.clientY > itemMid) {
-      targetIndex = i;
+  // 鼠标在 placeholder 上方 → 和上一个元素交换
+  if (e.clientY < placeholderMid) {
+    var prev = st.placeholder.previousElementSibling;
+    if (prev && prev !== st.el) {
+      st.container.insertBefore(st.placeholder, prev);
     }
   }
-
-  // 移动占位符到目标位置
-  if (targetIndex > st.origIndex) {
-    // 向下拖
-    var nextEl = items[targetIndex + 1] || null;
-    st.container.insertBefore(st.placeholder, nextEl);
-  } else if (targetIndex < st.origIndex) {
-    // 向上拖
-    st.container.insertBefore(st.placeholder, items[targetIndex]);
+  // 鼠标在 placeholder 下方 → 和下一个元素交换
+  else {
+    var next = st.placeholder.nextElementSibling;
+    if (next && next !== st.el) {
+      st.container.insertBefore(st.placeholder, next.nextSibling);
+    }
   }
-
-  st.origIndex = Array.prototype.indexOf.call(
-    st.container.querySelectorAll(':scope > .plan-item, :scope > div.plan-item'),
-    st.placeholder
-  );
 
   // Auto-scroll
   var mainEl = document.getElementById('main-content');
@@ -146,10 +114,7 @@ function onItemDragEnd(e) {
 
   var st = itemDragState;
 
-  // 计算占位符在容器中的最终位置
-  var allChildren = st.container.children;
-  var finalIndex = -1;
-  // 先把 item 放回 container（hidden，去掉 fixed 样式）
+  // 恢复 item 样式
   st.el.style.position = '';
   st.el.style.left = '';
   st.el.style.top = '';
@@ -158,43 +123,41 @@ function onItemDragEnd(e) {
   st.el.style.opacity = '';
   st.el.style.boxShadow = '';
   st.el.style.pointerEvents = '';
-  st.el.style.display = 'none';
 
-  // 找到 placeholder 的位置
-  for (var i = 0; i < allChildren.length; i++) {
-    if (allChildren[i] === st.placeholder) {
-      finalIndex = i;
+  // 找到 placeholder 在容器里的位置
+  var children = st.container.children;
+  var insertIndex = -1;
+  for (var i = 0; i < children.length; i++) {
+    if (children[i] === st.placeholder) {
+      insertIndex = i;
       break;
     }
   }
 
-  // 把 item 插入到 placeholder 位置
-  if (finalIndex >= 0) {
+  // 把 item 放到 placeholder 位置，然后删掉 placeholder
+  if (insertIndex >= 0) {
     st.container.insertBefore(st.el, st.placeholder);
   }
-
-  // 删除 placeholder
   st.placeholder.parentNode.removeChild(st.placeholder);
 
-  // 恢复 item 显示
-  st.el.style.display = '';
-
-  // 更新数据
+  // 更新数据 model：按 DOM 顺序重排 items 数组
   var ps = findPlanSet(st.planSetId);
-  if (ps && ps.items && finalIndex >= 0) {
-    var itemId = st.el.getAttribute('data-item-id');
-    // 找到 item 在数组中的位置
-    var itemIdx = -1;
-    for (var j = 0; j < ps.items.length; j++) {
-      if (ps.items[j].id === itemId) { itemIdx = j; break; }
-    }
-    if (itemIdx >= 0 && itemIdx !== finalIndex) {
-      var moved = ps.items.splice(itemIdx, 1)[0];
-      // finalIndex 可能因为 splice 偏移
-      if (finalIndex > itemIdx) finalIndex--;
-      ps.items.splice(finalIndex, 0, moved);
+  if (ps && ps.items) {
+    var domItems = st.container.querySelectorAll(':scope > .plan-item');
+    var newOrder = [];
+    for (var i = 0; i < domItems.length; i++) {
+      var itemId = domItems[i].getAttribute('data-item-id');
       for (var j = 0; j < ps.items.length; j++) {
-        ps.items[j].order = j;
+        if (ps.items[j].id === itemId) {
+          newOrder.push(ps.items[j]);
+          break;
+        }
+      }
+    }
+    if (newOrder.length === ps.items.length) {
+      ps.items = newOrder;
+      for (var i = 0; i < ps.items.length; i++) {
+        ps.items[i].order = i;
       }
       markDirty();
     }
@@ -205,16 +168,11 @@ function onItemDragEnd(e) {
     dragging: false,
     el: null,
     placeholder: null,
-    startY: 0,
     offsetY: 0,
-    origIndex: -1,
-    elHeight: 0,
     planSetId: null,
-    container: null,
-    items: [],
-    _globalBound: true
+    container: null
   };
 
-  // 重新渲染以更新 order
+  // 重新渲染
   render();
 }
