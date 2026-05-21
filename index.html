@@ -576,17 +576,21 @@ html, body {
 /* ========== Reorder Mode Button (M) ========== */
 .reorder-btn {
   cursor: pointer;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: bold;
   color: var(--color-light);
-  padding: 0 4px;
+  padding: 2px 4px;
   user-select: none;
-  transition: color 0.2s, background 0.2s;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s, background 0.2s;
   border-radius: 4px;
   line-height: 20px;
 }
+.plan-set:hover .reorder-btn,
+.reorder-btn:active { opacity: 1; }
 .reorder-btn:hover { color: var(--color-dark); background: rgba(0,0,0,0.05); }
 .plan-set.reorder-mode .reorder-btn {
+  opacity: 1;
   color: #3498db;
   background: rgba(52,152,219,0.1);
 }
@@ -604,6 +608,9 @@ html, body {
 }
 .plan-set.reorder-mode .item-drag-handle {
   display: inline-block;
+}
+.plan-set.reorder-mode .plan-item-content {
+  pointer-events: none;
 }
 .item-drag-handle:hover { color: var(--color-dark); }
 .plan-item.drag-placeholder {

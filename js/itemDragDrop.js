@@ -17,6 +17,10 @@ function setupItemDragAndDrop() {
   var items = document.querySelectorAll('.plan-set.reorder-mode .plan-item');
   for (var i = 0; i < items.length; i++) {
     (function(el) {
+      // 如果已经绑定过（有 draggable 属性），跳过
+      if (el.hasAttribute('data-item-drag-ready')) return;
+      el.setAttribute('data-item-drag-ready', '1');
+
       // 给 item 设 draggable
       el.setAttribute('draggable', 'true');
 
@@ -69,6 +73,9 @@ function setupItemDragAndDrop() {
   var containers = document.querySelectorAll('.plan-set.reorder-mode .plan-items');
   for (var i = 0; i < containers.length; i++) {
     (function(container) {
+      if (container.hasAttribute('data-item-drag-ready')) return;
+      container.setAttribute('data-item-drag-ready', '1');
+
       container.addEventListener('dragover', function(e) {
         e.preventDefault();
         if (!itemDragState.active) return;

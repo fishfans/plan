@@ -256,6 +256,8 @@ function bindPlanSetEvents() {
         var planSet = el.closest('.plan-set');
         if (planSet) {
           planSet.classList.toggle('reorder-mode');
+          // 重新绑定拖拽事件（因为 setupItemDragAndDrop 只找 reorder-mode 下的元素）
+          setupItemDragAndDrop();
         }
       });
     })(reorderBtns[i]);
