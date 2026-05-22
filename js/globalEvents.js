@@ -55,6 +55,7 @@
   document.getElementById('btn-export').addEventListener('click', toggleExportMenu);
   document.querySelectorAll('#export-menu .sketch-btn')[0].addEventListener('click', exportJSON);
   document.querySelectorAll('#export-menu .sketch-btn')[1].addEventListener('click', exportZIP);
+  document.querySelectorAll('#export-menu .sketch-btn')[2].addEventListener('click', exportMarkdown);
   document.getElementById('btn-add-set').addEventListener('click', addPlanSet);
   document.getElementById('btn-open-tag').addEventListener('click', openTagModal);
 

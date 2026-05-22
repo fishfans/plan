@@ -12,6 +12,7 @@ var i18n = {
       'btn.export': '导出 ▾',
       'btn.exportJSON': '导出 JSON',
       'btn.exportZIP': '导出 ZIP',
+      'btn.exportMD': '导出 Markdown',
 
       // Bottom bar
       'btn.prevDate': '‹ 上一天',
@@ -50,6 +51,7 @@ var i18n = {
       'msg.imported': '导入成功！',
       'msg.invalidJSON': '无效的 JSON 文件！',
       'msg.jsonExported': 'JSON 导出成功！',
+      'msg.mdExported': 'Markdown 导出成功！',
       'msg.zipExported': 'ZIP 导出成功！',
       'msg.generatingZip': '正在生成 ZIP...',
       'msg.noPlanSetsToCopy': '没有可复制的计划集',
@@ -216,6 +218,7 @@ var i18n = {
       'btn.export': 'Export v',
       'btn.exportJSON': 'Export JSON',
       'btn.exportZIP': 'Export ZIP',
+      'btn.exportMD': 'Export Markdown',
 
       // Bottom bar
       'btn.prevDate': '< Prev',
@@ -254,6 +257,7 @@ var i18n = {
       'msg.imported': 'Imported successfully!',
       'msg.invalidJSON': 'Invalid JSON file!',
       'msg.jsonExported': 'JSON exported!',
+      'msg.mdExported': 'Markdown exported!',
       'msg.zipExported': 'ZIP exported!',
       'msg.generatingZip': 'Generating ZIP...',
       'msg.noPlanSetsToCopy': 'No plan sets to copy',
@@ -462,9 +466,10 @@ var i18n = {
     if (exportBtn) exportBtn.textContent = this.t('btn.export');
 
     var exportMenuBtns = document.querySelectorAll('#export-menu .sketch-btn');
-    if (exportMenuBtns.length >= 2) {
+    if (exportMenuBtns.length >= 3) {
       exportMenuBtns[0].textContent = this.t('btn.exportJSON');
       exportMenuBtns[1].textContent = this.t('btn.exportZIP');
+      exportMenuBtns[2].textContent = this.t('btn.exportMD');
     }
 
     var saveLocalBtn = document.getElementById('btn-save-local');

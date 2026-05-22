@@ -95,6 +95,57 @@ function exportZIP() {
   captureNext();
 }
 
+function exportMarkdown() {
+  closeExportMenu();
+  var dateKeys = Object.keys(state.dates).sort();
+  if (!dateKeys.length) {
+    showToast(i18n.t('msg.noDataToSave'));
+    return;
+  }
+
+  var md = '# Plan Data\n\n';
+  md += '> Exported: ' + new Date().toLocaleString() + '\n\n---\n\n';
+
+  for (var d = 0; d < dateKeys.length; d++) {
+    var dateKey = dateKeys[d];
+    var dateData = state.dates[dateKey];
+    if (!dateData.planSets || !dateData.planSets.length) continue;
+
+    md += '## ' + dateKey + '\n\n';
+
+    for (var s = 0; s < dateData.planSets.length; s++) {
+      var ps = dateData.planSets[s];
+      if (!ps.items || !ps.items.length) continue;
+
+      md += '### ' + (ps.title || 'Untitled') + '\n\n';
+
+      for (var i = 0; i < ps.items.length; i++) {
+        var item = ps.items[i];
+        var line = '- [ ] ';
+        // 添加标签
+        if (item.tags && item.tags.length) {
+          var tagNames = [];
+          for (var t = 0; t < item.tags.length; t++) {
+            var tag = getTagById(item.tags[t]);
+            if (tag) tagNames.push(tag.name);
+          }
+          if (tagNames.length) line += '**[' + tagNames.join(', ') + ']** ';
+        }
+        // 内容用反引号包裹
+        line += '`' + (item.content || '') + '`';
+        // 添加时间
+        if (item.timestamp) line += '  _' + item.timestamp + '_';
+        md += line + '\n';
+      }
+
+      md += '\n';
+    }
+  }
+
+  downloadFile('plandata.md', md, 'text/markdown;charset=utf-8');
+  showToast(i18n.t('msg.mdExported'));
+}
+
 function downloadFile(filename, content, mimeType) {
   var blob = new Blob([content], { type: mimeType });
   downloadBlob(filename, blob);
