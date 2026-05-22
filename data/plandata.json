@@ -128,16 +128,28 @@
     "2026-05-22": {
       "planSets": [
         {
-          "id": "id_mngvgw5z_r5rpwd",
-          "title": "Conclusion",
-          "order": 0,
+          "id": "id_mpggp9zg_x899wx",
+          "title": "Finished",
+          "order": -1,
+          "_finished": true,
           "items": [
             {
               "id": "id_mngvh2jw_dgcha8",
               "content": "1. 换工作是的过程中，databricks的学习，英语的学习，大模型的学习也是其中重要的部分的，这些任务虽然划分成各个部分，但是其实是可以统一在一起的！找工作的过程也可以记录在社交媒体上面，学习的过程也可以记录在社交媒体上面，实践的项目可以记录在社交媒体上面。学习的技能和实践的项目可以作为找工作的展示！",
               "order": 0,
-              "tags": []
-            },
+              "tags": [
+                "tag_done"
+              ],
+              "_sourcePlanSetId": "id_mngvgw5z_r5rpwd",
+              "doneAt": "2026-05-22T05:11:20.523Z"
+            }
+          ]
+        },
+        {
+          "id": "id_mngvgw5z_r5rpwd",
+          "title": "Conclusion",
+          "order": 0,
+          "items": [
             {
               "id": "id_mngwdz1n_hd9fjg",
               "content": "2. 有以下的部分： 招工作，学习，社交媒体，项目实践",
