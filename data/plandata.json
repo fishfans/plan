@@ -87,6 +87,16 @@
               ],
               "_sourcePlanSetId": "id_mngvgw5z_r5rpwd",
               "doneAt": "2026-05-22T04:36:03.233Z"
+            },
+            {
+              "id": "id_mnguyhr5_eupdcv",
+              "content": "1.  [20%]看完data ingestion with lakeflow connect",
+              "order": 2,
+              "tags": [
+                "tag_done"
+              ],
+              "_sourcePlanSetId": "id_mnguyhr5_g66rqp",
+              "doneAt": "2026-05-22T04:36:23.782Z"
             }
           ]
         },
@@ -138,14 +148,6 @@
           "title": "学习",
           "order": 1,
           "items": [
-            {
-              "id": "id_mnguyhr5_eupdcv",
-              "content": "1.  [20%]看完data ingestion with lakeflow connect",
-              "order": 1,
-              "tags": [
-                "tag_normal"
-              ]
-            },
             {
               "id": "id_mngx6gsr_8ccbof",
               "content": "2. 看完 deploy workloads with lakeflow jobs",
