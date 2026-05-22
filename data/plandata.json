@@ -21,7 +21,7 @@
       "color": "#2c2aa2"
     },
     {
-      "id": "id_mncxgnpl_mdh55i",
+      "id": "tag_done",
       "name": "done",
       "color": "#7fcf4a"
     }
@@ -63,6 +63,34 @@
     "2026-05-19": {
       "planSets": [
         {
+          "id": "id_mpgffrqd_y2l1br",
+          "title": "Finished",
+          "order": -1,
+          "_finished": true,
+          "items": [
+            {
+              "id": "id_mngx1kld_mdu37r",
+              "content": "1. 在 the gift for xiaosheng by berlinlancho 上面应用git自动化",
+              "order": 0,
+              "tags": [
+                "tag_done"
+              ],
+              "_sourcePlanSetId": "id_mngx18yy_397vi7",
+              "doneAt": "2026-05-22T04:35:57.349Z"
+            },
+            {
+              "id": "id_mngwp1c5_hp8isy",
+              "content": "# 小声设计网站，git自动化，教她coding（科普好了），给她创建GitHub账号",
+              "order": 1,
+              "tags": [
+                "tag_done"
+              ],
+              "_sourcePlanSetId": "id_mngvgw5z_r5rpwd",
+              "doneAt": "2026-05-22T04:36:03.233Z"
+            }
+          ]
+        },
+        {
           "id": "id_mngvgw5z_r5rpwd",
           "title": "Conclusion",
           "order": 0,
@@ -80,21 +108,9 @@
               "tags": []
             },
             {
-              "id": "id_mngwgs9u_n9k25z",
-              "content": "3. 计划不可以太长了，都不好执行，计划一周的就好！下面的内容应该是可以在一周内或者更短时间可以完成的，其余的先放在Conclusion",
-              "order": 2,
-              "tags": []
-            },
-            {
               "id": "id_mngwiylv_trg5ar",
               "content": "# databricks 考试，看视频在ds协助下看ppt，画图，做ly题目，注册账号参照文档实操，学习英语",
               "order": 3,
-              "tags": []
-            },
-            {
-              "id": "id_mngwp1c5_hp8isy",
-              "content": "# 小声设计网站，git自动化，教她coding（科普好了），给她创建GitHub账号",
-              "order": 4,
               "tags": []
             },
             {
@@ -106,6 +122,12 @@
             {
               "id": "id_mngwta99_zhfwr8",
               "content": "# 爱好，读书周易说什么，口琴",
+              "order": 6,
+              "tags": []
+            },
+            {
+              "id": "id_mngwgs9u_n9k25z",
+              "content": "3. 计划不可以太长了，都不好执行，计划一周的就好！下面的内容应该是可以在一周内或者更短时间可以完成的，其余的先放在Conclusion",
               "order": 6,
               "tags": []
             }
@@ -146,21 +168,6 @@
               "content": "4. 学习集成github",
               "order": 3,
               "tags": []
-            }
-          ]
-        },
-        {
-          "id": "id_mngx18yy_397vi7",
-          "title": "项目实践",
-          "order": 2,
-          "items": [
-            {
-              "id": "id_mngx1kld_mdu37r",
-              "content": "1. 在 the gift for xiaosheng by berlinlancho 上面应用git自动化",
-              "order": 0,
-              "tags": [
-                "tag_low"
-              ]
             }
           ]
         },
