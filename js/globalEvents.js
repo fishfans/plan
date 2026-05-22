@@ -385,6 +385,10 @@ function promptPasswordAndLoad(onOk, onCancel) {
 /** 应用远程数据到 state 并渲染 */
 function applyRemoteData(data) {
   state.tags = data.tags || state.tags;
+  // 确保 tag_done 始终存在
+  if (!state.tags.some(function(t) { return t.id === 'tag_done'; })) {
+    state.tags.push({ id: 'tag_done', name: 'Done', color: '#27ae60' });
+  }
   state.dates = data.dates || state.dates;
   state.currentDate = data.currentDate || state.currentDate;
   state.dataLoaded = true;
@@ -449,12 +453,13 @@ function _loadConfigAndLocalData(successMsg) {
     if (configText) FileAccess.updateConfigCache(configText);
   }).catch(function() {}).then(function() {
     return Storage.loadLocalPlanData().then(function(loaded) {
+      state.dataSource = 'local';
+      updateToggleUI();
       if (loaded) {
-        state.dataSource = 'local';
-        updateToggleUI();
         if (successMsg) showToast(successMsg);
       } else {
-        showToast(i18n.t('msg.loginFailedNoLocal'));
+        // 没有本地数据，初始化空白状态
+        state.dataLoaded = true;
       }
       render();
     });
@@ -528,26 +533,13 @@ function handleSaveRemote() {
 }
 
 function doRemoteSave() {
-  if (FileAccess.hasValidHandle()) {
-    Storage.saveRemote().then(function() {
-      showToast(i18n.t('msg.savedLocalAndRemote'));
-    }).catch(function(e) {
-      if (!state.dirty) {
-        showToast(i18n.t('msg.savedLocalPushFailed') + e.message);
-      } else {
-        showToast(i18n.t('msg.saveFailed') + e.message);
-      }
-    });
-  } else {
-    // 无本地路径 → 只推 GitHub
-    GitHub.submitPlanData().then(function() {
-      state.dirty = false;
-      Storage._updateDirtyIndicator();
-      showToast(i18n.t('msg.pushedToGithub'));
-    }).catch(function(e) {
-      showToast(i18n.t('msg.pushFailed') + e.message);
-    });
-  }
+  GitHub.submitPlanData().then(function() {
+    state.dirty = false;
+    Storage._updateDirtyIndicator();
+    showToast(i18n.t('msg.pushedToGithub'));
+  }).catch(function(e) {
+    showToast(i18n.t('msg.saveFailed') + e.message);
+  });
 }
 
 // ==================== 数据源切换 ====================
