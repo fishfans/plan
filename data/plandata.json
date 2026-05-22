@@ -63,6 +63,24 @@
     "2026-05-19": {
       "planSets": [
         {
+          "id": "id_mpgfv8qm_rpyofa",
+          "title": "Finished",
+          "order": -1,
+          "_finished": true,
+          "items": [
+            {
+              "id": "id_mngwgs9u_n9k25z",
+              "content": "3. 计划不可以太长了，都不好执行，计划一周的就好！下面的内容应该是可以在一周内或者更短时间可以完成的，其余的先放在Conclusion",
+              "order": 0,
+              "tags": [
+                "tag_done"
+              ],
+              "_sourcePlanSetId": "id_mngvgw5z_r5rpwd",
+              "doneAt": "2026-05-22T04:47:59.229Z"
+            }
+          ]
+        },
+        {
           "id": "id_mngvgw5z_r5rpwd",
           "title": "Conclusion",
           "order": 0,
@@ -88,12 +106,6 @@
             {
               "id": "id_mngwta99_zhfwr8",
               "content": "# 爱好，读书周易说什么，口琴",
-              "order": 6,
-              "tags": []
-            },
-            {
-              "id": "id_mngwgs9u_n9k25z",
-              "content": "3. 计划不可以太长了，都不好执行，计划一周的就好！下面的内容应该是可以在一周内或者更短时间可以完成的，其余的先放在Conclusion",
               "order": 6,
               "tags": []
             }
