@@ -63,24 +63,6 @@
     "2026-05-19": {
       "planSets": [
         {
-          "id": "id_mpgfv8qm_rpyofa",
-          "title": "Finished",
-          "order": -1,
-          "_finished": true,
-          "items": [
-            {
-              "id": "id_mngwgs9u_n9k25z",
-              "content": "3. 计划不可以太长了，都不好执行，计划一周的就好！下面的内容应该是可以在一周内或者更短时间可以完成的，其余的先放在Conclusion",
-              "order": 0,
-              "tags": [
-                "tag_done"
-              ],
-              "_sourcePlanSetId": "id_mngvgw5z_r5rpwd",
-              "doneAt": "2026-05-22T04:47:59.229Z"
-            }
-          ]
-        },
-        {
           "id": "id_mngvgw5z_r5rpwd",
           "title": "Conclusion",
           "order": 0,
@@ -95,6 +77,12 @@
               "id": "id_mngwiylv_trg5ar",
               "content": "# databricks 考试，看视频在ds协助下看ppt，画图，做ly题目，注册账号参照文档实操，学习英语",
               "order": 3,
+              "tags": []
+            },
+            {
+              "id": "id_mngwgs9u_n9k25z",
+              "content": "3. 计划不可以太长了，都不好执行，计划一周的就好！下面的内容应该是可以在一周内或者更短时间可以完成的，其余的先放在Conclusion",
+              "order": 4,
               "tags": []
             },
             {
