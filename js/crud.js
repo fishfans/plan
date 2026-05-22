@@ -12,6 +12,10 @@ function doImport(e) {
     try {
       var imported = JSON.parse(ev.target.result);
       if (imported.tags) state.tags = imported.tags;
+      // 确保 tag_done 始终存在
+      if (!state.tags.some(function(t) { return t.id === 'tag_done'; })) {
+        state.tags.push({ id: 'tag_done', name: 'Done', color: '#27ae60' });
+      }
       if (imported.dates) state.dates = imported.dates;
       if (imported.currentDate) state.currentDate = imported.currentDate;
       state.dataLoaded = true;

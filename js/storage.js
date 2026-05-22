@@ -43,6 +43,10 @@ var Storage = {
       if (!text) return false;
       var data = JSON.parse(text);
       if (data.tags) state.tags = data.tags;
+      // 确保 tag_done 始终存在
+      if (!state.tags.some(function(t) { return t.id === 'tag_done'; })) {
+        state.tags.push({ id: 'tag_done', name: 'Done', color: '#27ae60' });
+      }
       if (data.dates) state.dates = data.dates;
       if (data.currentDate) state.currentDate = data.currentDate;
       state.dataLoaded = true;

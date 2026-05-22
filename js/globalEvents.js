@@ -385,6 +385,10 @@ function promptPasswordAndLoad(onOk, onCancel) {
 /** 应用远程数据到 state 并渲染 */
 function applyRemoteData(data) {
   state.tags = data.tags || state.tags;
+  // 确保 tag_done 始终存在
+  if (!state.tags.some(function(t) { return t.id === 'tag_done'; })) {
+    state.tags.push({ id: 'tag_done', name: 'Done', color: '#27ae60' });
+  }
   state.dates = data.dates || state.dates;
   state.currentDate = data.currentDate || state.currentDate;
   state.dataLoaded = true;
@@ -449,12 +453,13 @@ function _loadConfigAndLocalData(successMsg) {
     if (configText) FileAccess.updateConfigCache(configText);
   }).catch(function() {}).then(function() {
     return Storage.loadLocalPlanData().then(function(loaded) {
+      state.dataSource = 'local';
+      updateToggleUI();
       if (loaded) {
-        state.dataSource = 'local';
-        updateToggleUI();
         if (successMsg) showToast(successMsg);
       } else {
-        showToast(i18n.t('msg.loginFailedNoLocal'));
+        // 没有本地数据，初始化空白状态
+        state.dataLoaded = true;
       }
       render();
     });
