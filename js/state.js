@@ -7,6 +7,7 @@ var state = {
   dates: {},
   currentDate: '',
   selectedPlanSetId: null,
+  reorderPlanSetId: null, // 当前处于 reorder-mode 的 plan-set ID
   dataLoaded: false,
   dirty: false,
   dataSource: 'remote',

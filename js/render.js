@@ -4,6 +4,7 @@ function render() {
   renderPlanList();
   renderDateDisplay();
   updateButtons();
+  i18n.apply();
 }
 
 function renderPlanList() {
@@ -14,6 +15,8 @@ function renderPlanList() {
   if (!data.planSets.length) {
     container.innerHTML = '';
     emptyState.style.display = 'block';
+    emptyState.querySelector('.big').textContent = i18n.t('empty.title');
+    emptyState.querySelector('div:not(.big)').textContent = i18n.t('empty.desc');
     return;
   }
   emptyState.style.display = 'none';
@@ -29,17 +32,20 @@ function renderPlanList() {
     var ps = data.planSets[i];
     var isSelected = ps.id === state.selectedPlanSetId;
     var isFinished = !!ps._finished;
+    var setTitle = isFinished ? i18n.t('finished.title') : (ps.title || i18n.t('plan.untitled'));
 
-    html += '<div class="plan-set sketch-box' + (isSelected ? ' selected' : '') + (isFinished ? ' finished-set' : '') + '" data-id="' + ps.id + '"' + (isFinished ? '' : ' draggable="true"') + '>';
+    html += '<div class="plan-set sketch-box' + (isSelected ? ' selected' : '') + (isFinished ? ' finished-set' : '') + (ps.id === state.reorderPlanSetId ? ' reorder-mode' : '') + '" data-id="' + ps.id + '"' + (isFinished ? '' : ' draggable="true"') + '>';
     html += '<div class="plan-set-header">';
     if (isFinished) {
       html += '<span style="width:28px;display:inline-block;"></span>'; // placeholder for drag-handle
       html += '<span style="width:28px;display:inline-block;"></span>'; // placeholder for add-item-btn
+      html += '<span style="width:28px;display:inline-block;"></span>'; // placeholder for reorder-btn
     } else {
       html += '<span class="drag-handle" title="Drag to reorder">&#9776;</span>';
       html += '<span class="add-item-btn" title="Add item" data-set-id="' + ps.id + '"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg></span>';
+      html += '<span class="reorder-btn" title="Reorder items" data-set-id="' + ps.id + '">M</span>';
     }
-    html += '<div class="plan-set-title"' + (isFinished ? '' : ' contenteditable="true"') + ' data-set-id="' + ps.id + '">' + escapeHtml(ps.title) + '</div>';
+    html += '<div class="plan-set-title"' + (isFinished ? '' : ' contenteditable="true"') + ' data-set-id="' + ps.id + '">' + escapeHtml(setTitle) + '</div>';
     html += '<span class="plan-set-delete" title="Delete" data-set-id="' + ps.id + '">&times;</span>';
     html += '</div>';
     html += '<div class="plan-items">';
@@ -49,18 +55,30 @@ function renderPlanList() {
         var item = ps.items[j];
         html += '<div class="plan-item" data-set-id="' + ps.id + '" data-item-id="' + item.id + '">';
         if (isFinished) {
-          // Finished item: no tag-toggle, strikethrough content, done time
+          // Finished item: show as plan item with tags and undo (>) button
           html += '<span style="width:20px;display:inline-block;"></span>'; // placeholder
           html += '<span class="plan-item-body finished-item">';
           html += '<span class="plan-item-content" data-set-id="' + ps.id + '" data-item-id="' + item.id + '">' + escapeHtml(item.content) + '</span>';
+          if (item.tags) {
+            html += '<span class="tag-container">';
+            for (var k = 0; k < item.tags.length; k++) {
+              var ftag = getTagById(item.tags[k]);
+              if (ftag) {
+                html += '<span class="tag-label" style="background:' + ftag.color + '">' + escapeHtml(ftag.name) + '</span>';
+              }
+            }
+            html += '</span>';
+          }
           if (item.doneAt) {
             var doneDate = new Date(item.doneAt);
             var doneTime = ('0' + doneDate.getHours()).slice(-2) + ':' + ('0' + doneDate.getMinutes()).slice(-2);
             html += '<span class="done-time">' + escapeHtml(doneTime) + '</span>';
           }
           html += '</span>';
+          html += '<span class="plan-item-undo" title="' + i18n.t('finished.undo') + '" data-set-id="' + ps.id + '" data-item-id="' + item.id + '" data-source-set-id="' + (item._sourcePlanSetId || '') + '">&#8594;</span>';
         } else {
           html += '<span class="tag-toggle" data-set-id="' + ps.id + '" data-item-id="' + item.id + '">&#9660;</span>';
+          html += '<span class="item-drag-handle" title="Drag to reorder">&#9776;</span>';
           html += '<span class="plan-item-body">';
           html += '<span class="plan-item-content" contenteditable="true" data-set-id="' + ps.id + '" data-item-id="' + item.id + '">' + escapeHtml(item.content) + '</span>';
           html += '<span class="tag-container">';
@@ -102,7 +120,8 @@ function bindPlanSetEvents() {
     (function(el) {
       el.addEventListener('click', function(e) {
         if (e.target.closest('.drag-handle') || e.target.closest('.add-item-btn') || e.target.closest('.plan-set-delete')
-          || e.target.closest('.tag-toggle') || e.target.closest('.plan-item-delete')
+          || e.target.closest('.tag-toggle') || e.target.closest('.plan-item-delete') || e.target.closest('.plan-item-undo')
+          || e.target.closest('.reorder-btn') || e.target.closest('.item-drag-handle')
           || e.target.getAttribute('contenteditable') === 'true') return;
         if (el.classList.contains('finished-set')) return; // cannot select Finished set
         state.selectedPlanSetId = el.getAttribute('data-id');
@@ -116,7 +135,7 @@ function bindPlanSetEvents() {
     (function(el) {
       el.addEventListener('blur', function() {
         var ps = findPlanSet(el.getAttribute('data-set-id'));
-        if (ps) ps.title = el.textContent.trim() || 'Untitled';
+        if (ps) ps.title = el.textContent.trim() || i18n.t('plan.untitled');
         markDirty();
       });
       el.addEventListener('keydown', function(e) {
@@ -133,7 +152,7 @@ function bindPlanSetEvents() {
         var setId = el.getAttribute('data-set-id');
         var ps = findPlanSet(setId);
         if (!ps) return;
-        showConfirm('Delete plan set "' + ps.title + '"?', function(ok) {
+        showConfirm(i18n.t('msg.deletedPlanSet', { title: ps.title }), function(ok) {
           if (!ok) return;
           var data = getCurrentDateData();
           for (var i = 0; i < data.planSets.length; i++) {
@@ -189,6 +208,20 @@ function bindPlanSetEvents() {
     })(itemDeletes[i]);
   }
 
+  // Undo (>) button for finished items
+  var undoBtns = document.querySelectorAll('.plan-item-undo');
+  for (var i = 0; i < undoBtns.length; i++) {
+    (function(el) {
+      el.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var finishedSetId = el.getAttribute('data-set-id');
+        var itemId = el.getAttribute('data-item-id');
+        var sourceSetId = el.getAttribute('data-source-set-id');
+        undoItemDone(finishedSetId, itemId, sourceSetId);
+      });
+    })(undoBtns[i]);
+  }
+
   var tagToggles = document.querySelectorAll('.tag-toggle');
   for (var i = 0; i < tagToggles.length; i++) {
     (function(el) {
@@ -214,5 +247,28 @@ function bindPlanSetEvents() {
     })(addBtns[i]);
   }
 
+  // Reorder mode button (M) - toggle reorder mode for a plan set
+  var reorderBtns = document.querySelectorAll('.reorder-btn');
+  for (var i = 0; i < reorderBtns.length; i++) {
+    (function(el) {
+      el.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var planSet = el.closest('.plan-set');
+        if (planSet) {
+          var setId = planSet.getAttribute('data-id');
+          if (state.reorderPlanSetId === setId) {
+            state.reorderPlanSetId = null; // 退出 reorder-mode
+          } else {
+            state.reorderPlanSetId = setId; // 进入 reorder-mode
+          }
+          planSet.classList.toggle('reorder-mode');
+          // 重新绑定拖拽事件
+          setupItemDragAndDrop();
+        }
+      });
+    })(reorderBtns[i]);
+  }
+
   setupDragAndDrop();
+  setupItemDragAndDrop();
 }

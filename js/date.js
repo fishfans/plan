@@ -18,13 +18,13 @@ function onDateEdit(val) {
 function copyToNextDay() {
   var data = getCurrentDateData();
   if (!data.planSets || !data.planSets.length) {
-    showToast('No plan sets to copy');
+    showToast(i18n.t('msg.noPlanSetsToCopy'));
     return;
   }
   // Filter out Finished plan set
   var setsToCopy = data.planSets.filter(function(ps) { return !ps._finished; });
   if (!setsToCopy.length) {
-    showToast('No plan sets to copy');
+    showToast(i18n.t('msg.noPlanSetsToCopy'));
     return;
   }
   var nextDate = shiftDate(state.currentDate, 1);
@@ -41,7 +41,7 @@ function copyToNextDay() {
     }
   }
   markDirty();
-  showToast('Copied to ' + formatDate(nextDate));
+  showToast(i18n.t('msg.copiedTo') + formatDate(nextDate));
 }
 
 function openChangeDateModal() {
@@ -55,7 +55,7 @@ function closeChangeDateModal(confirmed) {
   if (!confirmed) return;
   var newDate = document.getElementById('changedate-to').value;
   if (!newDate || newDate === state.currentDate) {
-    showToast('Please select a different date');
+    showToast(i18n.t('msg.selectDifferentDate'));
     return;
   }
   var data = getCurrentDateData();
@@ -63,7 +63,7 @@ function closeChangeDateModal(confirmed) {
   var setsToMove = data.planSets.filter(function(ps) { return !ps._finished; });
   var finishedSets = data.planSets.filter(function(ps) { return !!ps._finished; });
   if (!setsToMove.length) {
-    showToast('No data to move on current date');
+    showToast(i18n.t('msg.noDataToMove'));
     return;
   }
   if (!state.dates[newDate]) {
@@ -81,21 +81,21 @@ function closeChangeDateModal(confirmed) {
   state.dataLoaded = true;
   markDirty();
   render();
-  showToast('Data moved to ' + formatDate(newDate));
+  showToast(i18n.t('msg.dataMovedTo') + formatDate(newDate));
 }
 
 function clearPage() {
   var data = getCurrentDateData();
   if (!data.planSets || !data.planSets.length) {
-    showToast('Page is already empty');
+    showToast(i18n.t('msg.pageAlreadyEmpty'));
     return;
   }
-  showConfirm('Clear all plan sets on this page (including Finished)?', function(ok) {
+  showConfirm(i18n.t('msg.clearConfirm'), function(ok) {
     if (!ok) return;
     state.dates[state.currentDate].planSets = [];
     state.selectedPlanSetId = null;
     markDirty();
     render();
-    showToast('Page cleared');
+    showToast(i18n.t('msg.pageCleared'));
   });
 }

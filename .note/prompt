@@ -136,7 +136,21 @@ submit 改为 save remote
 然后就是再读取其他主人仓库下users下的目录进行交互。
 好像也不需要，其他主人提供自己的token给普通用户不就好了吗？
 
-# 增加交互逻辑 20260517
+# 增加done交互逻辑 20260517
 1. 修改默认的itme tag，默认只有一个 done 标记为绿色, 不可以修改的。
 2. 当有一个item被标记为done之后，会在当前日期page创建一个名字为Finished的plan set，然后被标记done的item会被移动到这个plan set 里面 显示为灰色带删除线 在itme内容后面还会显示标记为done的时间。标记为done之后不可逆。
 3. 当点击copy to next date 或者是chage date 移动的时候, plan set Finished不会被复制或者移动到下一页。
+
+# 补充done交互
+1. Finished plan set 保留plan set删除按钮，当删除后再有标记为item，识别到没有Finished plan set 可以再次创建
+2. 新增plan set 的时候是从Finished plan set下面的第一个插入。保持inished plan set 在第一位
+
+# 增加 clear page
+1. 在底部增加一个按钮 clear，点击会把当前日期页面的所有plan set 清空包括 Finished
+
+# 逻辑补充
+1. 我发现切换到remote的时候，我没有点击save local ，再切换回local之后发现已经是remote的内容了。我不希望这种自动保存的操作，
+当我点击切换按钮的时候是不应该有任何保存的操作的，只会展示local或者remote的内容，只有当点击save local或者save remote才会
+把当前展示的内容保存在本地或者远程。
+2. 我发现Finished创建的时候也没有出现在第一个，它创建的时候就应该出现在第一个，而为了保持它第一个的位置，创建其他plan set的时候都是
+从它后面开始插入。

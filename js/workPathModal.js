@@ -26,11 +26,11 @@ var WorkPathModal = {
     var cancelBtn = document.getElementById('workpath-cancel');
 
     if (options.mode === 'authorize') {
-      msg.textContent = 'Found existing work path: "' + options.dirName + '". Authorize access for offline storage?';
+      msg.textContent = i18n.t('workPath.authorizeMessage', { dirName: options.dirName });
       selectBtn.style.display = 'none';
       authBtn.style.display = '';
     } else {
-      msg.textContent = 'A local work path is needed to store your plan data locally for offline access.\nClick "Select" to choose a directory.';
+      msg.textContent = i18n.t('workPath.selectMessage');
       selectBtn.style.display = '';
       authBtn.style.display = 'none';
     }
@@ -51,7 +51,7 @@ var WorkPathModal = {
 
   select: function() {
     if (!window.showDirectoryPicker) {
-      showToast('Browser does not support directory picking (use Chrome)');
+      showToast(i18n.t('workPath.browserNotSupported'));
       return;
     }
     var callback = this._onSelect;
@@ -67,7 +67,7 @@ var WorkPathModal = {
         if (callback) callback(handle);
       });
     }).catch(function(e) {
-      if (e.name !== 'AbortError') showToast('Failed to pick directory: ' + e.message);
+      if (e.name !== 'AbortError') showToast(i18n.t('msg.failedToPick') + e.message);
     });
   },
 

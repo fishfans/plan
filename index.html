@@ -546,12 +546,89 @@ html, body {
 .finished-set .plan-item {
   border-color: transparent;
   background: transparent;
+  cursor: default;
+}
+.finished-set .plan-item:hover {
+  border-color: #bbb;
+  background: rgba(0,0,0,0.02);
 }
 .done-time {
   font-size: 13px;
   color: #aaa;
   margin-left: 0.5em;
   white-space: nowrap;
+}
+
+/* ========== Undo Button (Finished Items) ========== */
+.plan-item-undo {
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0 4px;
+  color: var(--color-light);
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+  user-select: none;
+  flex-shrink: 0;
+}
+.finished-set .plan-item:hover .plan-item-undo { opacity: 1; }
+.plan-item-undo:hover { color: var(--color-tag-normal); }
+
+/* ========== Reorder Mode Button (M) ========== */
+.reorder-btn {
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: bold;
+  color: var(--color-light);
+  padding: 2px 4px;
+  user-select: none;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s, background 0.2s;
+  border-radius: 4px;
+  line-height: 20px;
+}
+.plan-set:hover .reorder-btn,
+.reorder-btn:active { opacity: 1; }
+.reorder-btn:hover { color: var(--color-dark); background: rgba(0,0,0,0.05); }
+.plan-set.reorder-mode .reorder-btn {
+  opacity: 1;
+  color: #3498db;
+  background: rgba(52,152,219,0.1);
+}
+
+/* ========== Plan Item Drag Handle ========== */
+.item-drag-handle {
+  display: none;
+  cursor: grab;
+  font-size: 14px;
+  color: var(--color-light);
+  padding: 0 2px;
+  user-select: none;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+.plan-set.reorder-mode .item-drag-handle {
+  display: inline-block;
+}
+.plan-set.reorder-mode .plan-item-content {
+  pointer-events: none;
+}
+.item-drag-handle:hover { color: var(--color-dark); }
+.plan-item {
+  transition: border-color 0.2s, background 0.2s, transform 0.15s ease;
+}
+.plan-item.drag-placeholder {
+  visibility: hidden;
+}
+.plan-item.dragging {
+  opacity: 0.4;
+}
+.plan-item.no-transition {
+  transition: none !important;
+}
+.item-drag-placeholder {
+  border: 2px dashed #bbb;
+  background: rgba(0,0,0,0.03);
+  opacity: 0.5;
 }
 
 /* ========== 密码弹窗 ========== */
@@ -732,7 +809,10 @@ html, body {
 
   <!-- 底部日期分页 -->
   <div id="date-pagination" class="sketch-box">
-    <button id="btn-settings" class="sketch-btn" title="GitHub Settings" style="margin-right:auto;">&#9881;</button>
+    <div style="display:flex;gap:6px;margin-right:auto;">
+      <button id="btn-settings" class="sketch-btn" title="GitHub Settings">&#9881;</button>
+      <button id="btn-lang-toggle" class="sketch-btn" title="Switch Language">中文</button>
+    </div>
     <div id="date-nav-btns">
       <button class="sketch-btn" data-action="prev-date">&lt; Prev</button>
       <input type="date" id="date-display">
@@ -884,6 +964,7 @@ html, body {
 </div>
 
 <script src="js/state.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/crypto.js"></script>
 <script src="js/fileAccess.js"></script>
 <script src="js/storage.js"></script>
@@ -897,6 +978,7 @@ html, body {
 <script src="js/render.js"></script>
 <script src="js/tagDropdown.js"></script>
 <script src="js/dragDrop.js"></script>
+<script src="js/itemDragDrop.js"></script>
 <script src="js/crud.js"></script>
 <script src="js/date.js"></script>
 <script src="js/export.js"></script>

@@ -41,7 +41,7 @@ var Settings = {
       var roleText = state.currentUser.role === 'owner' ? 'Owner' : 'User';
       infoEl.textContent = 'Logged in as: ' + state.currentUser.username + ' (' + roleText + ')';
       logoutBtn.style.display = 'inline-block';
-      saveBtn.textContent = 'Save Config';
+      saveBtn.textContent = i18n.t('settings.saveConfig');
 
       // username 字段：主人可编辑，用户只读
       document.getElementById('settings-username-group').style.display = 'block';
@@ -57,9 +57,9 @@ var Settings = {
     } else {
       // 未登录 → Register 模式
       infoEl.style.display = state.isLocalMode ? 'block' : 'none';
-      if (state.isLocalMode) infoEl.textContent = 'Local offline mode';
+      if (state.isLocalMode) infoEl.textContent = i18n.t('settings.localOfflineMode');
       logoutBtn.style.display = 'none';
-      saveBtn.textContent = 'Register';
+      saveBtn.textContent = i18n.t('settings.register');
       // 注册时 username 可编辑，file path 隐藏（自动生成）
       document.getElementById('settings-username-group').style.display = 'block';
       usernameInput.removeAttribute('readonly');
@@ -72,7 +72,7 @@ var Settings = {
 
   pickDir: function() {
     if (!window.showDirectoryPicker) {
-      showToast('Browser does not support directory picking (use Chrome)');
+      showToast(i18n.t('workPath.browserNotSupported'));
       return;
     }
     var self = this;
@@ -82,7 +82,7 @@ var Settings = {
     window.showDirectoryPicker({ mode: 'readwrite' }).then(function(handle) {
       return FileAccess.saveDirHandle(handle, handleUsername).then(function() {
         self._updateWorkPathStatus();
-        showToast('Work path set: ' + handle.name);
+        showToast(i18n.t('msg.workPathSet') + handle.name);
       });
     }).catch(function(e) {
       if (e.name !== 'AbortError') showToast('Failed: ' + e.message);
@@ -94,14 +94,14 @@ var Settings = {
     var input = document.getElementById('cfg-workpath');
     if (FileAccess.hasValidHandle()) {
       input.value = FileAccess._rootDirHandle.name;
-      el.textContent = 'Path: ' + FileAccess._rootDirHandle.name;
+      el.textContent = i18n.t('settings.path') + FileAccess._rootDirHandle.name;
       el.style.color = 'var(--color-tag-low)';
     } else if (input.value) {
       el.textContent = input.value + ' (re-select)';
       el.style.color = 'var(--color-light)';
     } else {
       input.value = '';
-      el.textContent = 'No path selected';
+      el.textContent = i18n.t('settings.noPathSelected');
       el.style.color = 'var(--color-light)';
     }
   },
@@ -116,15 +116,15 @@ var Settings = {
     if (FileAccess.hasConfig()) {
       var self = this;
       PasswordModal.show({
-        title: 'Enter Password',
-        message: 'Enter password to load existing settings',
+        title: i18n.t('password.title'),
+        message: i18n.t('password.message'),
         mode: 'unlock',
         cancelText: 'Cancel',
         onOk: function(password) {
           GitHub.unlock(password).then(function(config) {
             self._fillForm(config);
           }).catch(function() {
-            showToast('Wrong password!');
+            showToast(i18n.t('msg.wrongPassword'));
             self._clearForm();
           });
         },
@@ -138,15 +138,15 @@ var Settings = {
         if (text) {
           FileAccess.updateConfigCache(text);
           PasswordModal.show({
-            title: 'Enter Password',
-            message: 'Enter password to load existing settings',
+            title: i18n.t('password.title'),
+            message: i18n.t('password.message'),
             mode: 'unlock',
             cancelText: 'Cancel',
             onOk: function(password) {
               GitHub.unlock(password).then(function(config) {
                 self._fillForm(config);
               }).catch(function() {
-                showToast('Wrong password!');
+                showToast(i18n.t('msg.wrongPassword'));
                 self._clearForm();
               });
             },
@@ -205,21 +205,21 @@ var Settings = {
   testConnection: function() {
     var values = this._getFormValues();
     if (!values.owner || !values.repo || !values.token) {
-      showToast('Please fill in Owner, Repo and Token');
+      showToast(i18n.t('msg.pleaseFillOwnerRepoToken'));
       return;
     }
     var statusEl = document.getElementById('settings-status');
-    statusEl.textContent = 'Connecting...';
+    statusEl.textContent = i18n.t('msg.connecting');
     statusEl.className = 'settings-status loading';
 
     GitHub.testConnection(values).then(function() {
-      statusEl.textContent = 'Connection successful!';
+      statusEl.textContent = i18n.t('msg.connectionSuccess');
       statusEl.className = 'settings-status success';
-      showToast('Connection successful!');
+      showToast(i18n.t('msg.connectionSuccess'));
     }).catch(function(e) {
-      statusEl.textContent = 'Connection failed: ' + e.message;
+      statusEl.textContent = i18n.t('msg.connectionFailed') + e.message;
       statusEl.className = 'settings-status error';
-      showToast('Connection failed: ' + e.message);
+      showToast(i18n.t('msg.connectionFailed') + e.message);
     });
   },
 
@@ -238,16 +238,16 @@ var Settings = {
   _saveConfig: function() {
     var values = this._getFormValues();
     if (!values.owner || !values.repo || !values.token) {
-      showToast('Please fill in Owner, Repo and Token');
+      showToast(i18n.t('msg.pleaseFillOwnerRepoToken'));
       return;
     }
     if (!FileAccess.hasValidHandle()) {
-      showToast('Please select a local work path');
+      showToast(i18n.t('msg.pleaseSelectLocalPath'));
       return;
     }
 
     var statusEl = document.getElementById('settings-status');
-    statusEl.textContent = 'Testing connection...';
+    statusEl.textContent = i18n.t('msg.connecting');
     statusEl.className = 'settings-status loading';
 
     var self = this;
@@ -267,10 +267,10 @@ var Settings = {
         var password = GitHub._memoryPassword;
         Storage.saveEncryptedConfig(values, password).then(function() {
           GitHub._config = values;
-          showToast('Config saved!');
+          showToast(i18n.t('settings.configSaved'));
           self.close();
         }).catch(function(e) {
-          showToast('Failed to save: ' + e.message);
+          showToast(i18n.t('msg.saveFailed') + e.message);
         });
       } else {
         // 没有内存密码（不应该发生，但兜底处理）
@@ -278,7 +278,7 @@ var Settings = {
         statusEl.className = 'settings-status error';
       }
     }).catch(function(e) {
-      statusEl.textContent = 'Connection failed: ' + e.message;
+      statusEl.textContent = i18n.t('msg.connectionFailed') + e.message;
       statusEl.className = 'settings-status error';
     });
   },
@@ -287,11 +287,11 @@ var Settings = {
   _register: function() {
     var values = this._getFormValues();
     if (!values.owner || !values.repo || !values.token) {
-      showToast('Please fill in Owner, Repo and Token');
+      showToast(i18n.t('msg.pleaseFillOwnerRepoToken'));
       return;
     }
     if (!FileAccess.hasValidHandle()) {
-      showToast('Please select a local work path');
+      showToast(i18n.t('msg.pleaseSelectLocalPath'));
       return;
     }
 
@@ -309,7 +309,7 @@ var Settings = {
     }
 
     var statusEl = document.getElementById('settings-status');
-    statusEl.textContent = 'Testing connection...';
+    statusEl.textContent = i18n.t('msg.connecting');
     statusEl.className = 'settings-status loading';
 
     var self = this;
@@ -323,31 +323,31 @@ var Settings = {
     };
 
     GitHub.testConnection(values).then(function() {
-      statusEl.textContent = 'Connected! Set your password...';
+      statusEl.textContent = i18n.t('settings.connectedSetPassword');
       statusEl.className = 'settings-status success';
 
       // 设置密码
       PasswordModal.show({
-        title: 'Set Password',
+        title: i18n.t('password.setTitle'),
         message: isOwner
-          ? 'Set your owner password.\nYou need it to login later.'
-          : 'Set your account password.\nYou need it to login later.',
+          ? i18n.t('password.setOwnerPasswordMessage')
+          : i18n.t('password.setAccountPasswordMessage'),
         mode: 'set',
         hideCancel: true,
         onOk: function(password) {
-          statusEl.textContent = 'Saving config...';
+          statusEl.textContent = i18n.t('settings.savingConfig');
           statusEl.className = 'settings-status loading';
 
           if (isOwner) {
             // ===== 主人注册：生成 config → 保存本地 → 推送远程 =====
             Auth.registerOwner(regInfo, password).then(function() {
-              showToast('Owner registered!');
+              showToast(i18n.t('settings.ownerRegistered'));
               self.close();
-              Auth.login(null, password).catch(function(err) {
-                showToast('Registered, but auto-login failed: ' + err.message);
+              Auth.initAfterRegister(password, { isOwner: true }).catch(function(err) {
+                showToast(i18n.t('settings.autoLoginFailed') + err.message);
               });
             }).catch(function(err) {
-              statusEl.textContent = 'Registration failed: ' + (err.message || err);
+              statusEl.textContent = i18n.t('settings.registrationFailed') + (err.message || err);
               statusEl.className = 'settings-status error';
             });
           } else {
@@ -355,53 +355,53 @@ var Settings = {
             // Step 1: 生成 config → 保存本地 → 推送到用户仓库
             Auth.registerUserStep1(regInfo, password).then(function(encryptedJson) {
               // Step 2: 输入主人密码验证
-              statusEl.textContent = 'Config saved! Enter owner password...';
+              statusEl.textContent = i18n.t('settings.configSavedEnterOwnerPassword');
               statusEl.className = 'settings-status success';
 
               PasswordModal.show({
-                title: 'Owner Verification',
-                message: 'Enter the project owner password to authorize registration',
+                title: i18n.t('password.ownerVerification'),
+                message: i18n.t('password.ownerVerificationMessage'),
                 mode: 'unlock',
                 cancelText: 'Cancel',
                 onOk: function(ownerPassword) {
-                  statusEl.textContent = 'Authorizing...';
+                  statusEl.textContent = i18n.t('settings.authorizing');
                   statusEl.className = 'settings-status loading';
 
                   // Step 3: 验证主人密码 → 推送到项目仓库
                   Auth.registerUserStep2(regInfo, ownerPassword, encryptedJson)
                     .then(function() {
-                      showToast('Registered as "' + regInfo.username + '"!');
+                      showToast(i18n.t('settings.registeredAs') + regInfo.username + '"!');
                       self.close();
-                      Auth.login(regInfo.username, password).catch(function(err) {
-                        showToast('Registered, but auto-login failed: ' + err.message);
+                      Auth.initAfterRegister(password, { isOwner: false, username: regInfo.username }).catch(function(err) {
+                        showToast(i18n.t('settings.autoLoginFailed') + err.message);
                       });
                     })
                     .catch(function(err) {
-                      statusEl.textContent = 'Registration failed: ' + (err.message || err);
+                      statusEl.textContent = i18n.t('settings.registrationFailed') + (err.message || err);
                       statusEl.className = 'settings-status error';
                     });
                 },
                 onCancel: function() {
-                  statusEl.textContent = 'Registration cancelled (config saved locally)';
+                  statusEl.textContent = i18n.t('settings.registrationCancelled');
                   statusEl.className = 'settings-status error';
                 }
               });
             }).catch(function(err) {
-              statusEl.textContent = 'Registration failed: ' + (err.message || err);
+              statusEl.textContent = i18n.t('settings.registrationFailed') + (err.message || err);
               statusEl.className = 'settings-status error';
             });
           }
         }
       });
     }).catch(function(e) {
-      statusEl.textContent = 'Connection failed: ' + e.message;
+      statusEl.textContent = i18n.t('msg.connectionFailed') + e.message;
       statusEl.className = 'settings-status error';
     });
   },
 
   clearConfig: function() {
     var self = this;
-    showConfirm('Clear all settings? This will remove config and work path.', function(ok) {
+    showConfirm(i18n.t('settings.clearConfirm'), function(ok) {
       if (!ok) return;
       Storage.clearConfig().then(function() {
         GitHub.lock();
@@ -409,7 +409,7 @@ var Settings = {
         self._updateWorkPathStatus();
         document.getElementById('settings-status').textContent = '';
         document.getElementById('settings-status').className = 'settings-status';
-        showToast('Settings cleared');
+        showToast(i18n.t('settings.cleared'));
       });
     });
   }

@@ -23,7 +23,7 @@ function toggleTagDropdown(setId, itemId, anchorEl) {
     html += '</div>';
   }
   if (!state.tags.length) {
-    html += '<div class="tag-option" style="color:#888;">No tags. Click "+ Item Tag" to add.</div>';
+    html += '<div class="tag-option" style="color:#888;">' + i18n.t('tagModal.empty') + '</div>';
   }
   dropdown.innerHTML = html;
   dropdown.classList.add('open');
@@ -53,11 +53,11 @@ function toggleTagDropdown(setId, itemId, anchorEl) {
         if (!it) return;
         if (!it.tags) it.tags = [];
 
-        // Done tag: mark item as done and move to Finished set (irreversible)
+        // Done tag: mark item as done and move to Finished set
         if (tagId === 'tag_done') {
           if (it.tags.indexOf(tagId) !== -1) {
-            // Already done, cannot undo
-            render();
+            // Already done, cannot re-mark
+            closeTagDropdown();
             return;
           }
           markItemDone(sId, iId);
@@ -68,6 +68,7 @@ function toggleTagDropdown(setId, itemId, anchorEl) {
         if (idx !== -1) { it.tags.splice(idx, 1); }
         else { it.tags.push(tagId); }
         markDirty();
+        closeTagDropdown();
         render();
       });
     })(options[i]);
@@ -78,6 +79,7 @@ function toggleTagDropdown(setId, itemId, anchorEl) {
  * Mark an item as done: record timestamp, remove from current set, move to Finished set
  */
 function markItemDone(planSetId, itemId) {
+  closeTagDropdown();
   var data = getCurrentDateData();
   var sourceSet = null;
   var sourceIdx = -1;
@@ -100,6 +102,9 @@ function markItemDone(planSetId, itemId) {
   }
 
   if (!doneItem) return;
+
+  // Store source plan set id for undo
+  doneItem._sourcePlanSetId = planSetId;
 
   // Record done timestamp and tag
   doneItem.doneAt = new Date().toISOString();
@@ -137,7 +142,102 @@ function markItemDone(planSetId, itemId) {
 
   markDirty();
   render();
-  showToast('Marked as done!');
+  showToast(i18n.t('msg.markedAsDone'));
+}
+
+/**
+ * Undo a done item: move it back to its original plan set
+ */
+function undoItemDone(finishedSetId, itemId, sourceSetId) {
+  var data = getCurrentDateData();
+
+  // Find the finished set and item
+  var finishedSet = null;
+  var finishedIdx = -1;
+  for (var i = 0; i < data.planSets.length; i++) {
+    if (data.planSets[i].id === finishedSetId) {
+      finishedSet = data.planSets[i];
+      finishedIdx = i;
+      break;
+    }
+  }
+  if (!finishedSet) return;
+
+  var itemIdx = -1;
+  var undoneItem = null;
+  for (var j = 0; j < finishedSet.items.length; j++) {
+    if (finishedSet.items[j].id === itemId) {
+      undoneItem = finishedSet.items[j];
+      itemIdx = j;
+      break;
+    }
+  }
+  if (!undoneItem) return;
+
+  // Remove done state
+  delete undoneItem.doneAt;
+  delete undoneItem._sourcePlanSetId;
+  // Remove tag_done from tags
+  if (undoneItem.tags) {
+    var doneIdx = undoneItem.tags.indexOf('tag_done');
+    if (doneIdx !== -1) undoneItem.tags.splice(doneIdx, 1);
+  }
+
+  // Remove from finished set
+  finishedSet.items.splice(itemIdx, 1);
+
+  // If source set exists, add item back there
+  var targetSet = null;
+  if (sourceSetId) {
+    for (var i = 0; i < data.planSets.length; i++) {
+      if (data.planSets[i].id === sourceSetId) {
+        targetSet = data.planSets[i];
+        break;
+      }
+    }
+  }
+
+  if (targetSet) {
+    undoneItem.order = targetSet.items.length;
+    targetSet.items.push(undoneItem);
+  } else {
+    // Source set no longer exists, create a new one
+    var newSet = {
+      id: uid(),
+      title: i18n.t('plan.newPlan'),
+      order: 0,
+      items: [undoneItem]
+    };
+    undoneItem.order = 0;
+    // Insert after Finished set
+    var insertIdx = 0;
+    for (var i = 0; i < data.planSets.length; i++) {
+      if (data.planSets[i]._finished) {
+        insertIdx = i + 1;
+        break;
+      }
+    }
+    data.planSets.splice(insertIdx, 0, newSet);
+    for (var i = 0; i < data.planSets.length; i++) {
+      data.planSets[i].order = i;
+    }
+  }
+
+  // Remove finished set if empty
+  if (finishedSet.items.length === 0) {
+    data.planSets.splice(finishedIdx, 1);
+  }
+
+  // Re-order finished set items
+  if (finishedSet.items.length > 0) {
+    for (var i = 0; i < finishedSet.items.length; i++) {
+      finishedSet.items[i].order = i;
+    }
+  }
+
+  markDirty();
+  render();
+  showToast(i18n.t('finished.undoDone') || 'Undone!');
 }
 
 function closeTagDropdown() {

@@ -15,7 +15,7 @@
   window.addEventListener('beforeunload', function(e) {
     if (state.dirty) {
       e.preventDefault();
-      e.returnValue = 'You have unsaved changes! Are you sure you want to leave?';
+      e.returnValue = i18n.t('confirm.unsavedChanges');
     }
   });
 
@@ -67,6 +67,9 @@
   document.getElementById('btn-settings').addEventListener('click', function() {
     Settings.open();
   });
+
+  // ---- Language Toggle 按钮 ----
+  document.getElementById('btn-lang-toggle').addEventListener('click', function() { i18n.toggle(); });
 
   // ---- Grant Access 按钮 ----
   document.getElementById('btn-grant-access').addEventListener('click', grantAccess);
@@ -169,6 +172,8 @@
   });
 
   // ==================== 初始化 ====================
+  i18n.init(); // 初始化语言设置
+
   var now = new Date();
   var y = now.getFullYear();
   var m = ('0' + (now.getMonth()+1)).slice(-2);
@@ -179,7 +184,7 @@
 
   // ---- 登出按钮 ----
   document.getElementById('btn-logout').addEventListener('click', function() {
-    showConfirm('Logout? Unsaved changes will be lost.', function(ok) {
+    showConfirm(i18n.t('confirm.logout'), function(ok) {
       if (!ok) return;
       Auth.logout();
       // 重新启动认证流程
@@ -195,109 +200,47 @@
 
 /**
  * 应用启动认证流程：
- * 1. 检测环境（file:// 本地 / https GitHub Pages）
- * 2. 弹出带用户名的密码框
- * 3. 根据用户名解密对应配置 → 加载数据
+ * 1. 检测环境（localhost 本地 / https GitHub Pages）
+ * 2. 本地模式：直接选择文件夹加载本地数据
+ * 3. GitHub Pages 模式：弹窗输入用户名+密码，成功加载远程数据，失败提示选择本地文件夹
  */
+function isLocalEnv() {
+  if (location.protocol === 'file:') return true;
+  var host = location.hostname;
+  return host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+}
+
 function startAuth() {
-  state.isLocalMode = location.protocol === 'file:';
+  state.isLocalMode = isLocalEnv();
   state.currentUser = null;
 
   if (state.isLocalMode) {
-    // 本地模式：先尝试从本地加载，失败则弹窗
-    startLocalAuth();
+    // 本地模式：直接选择文件夹加载本地数据
+    fallbackToLocalWithFolderSelection();
   } else {
-    // GitHub Pages 模式：弹窗输入用户名+密码
     startWebAuth();
   }
 }
 
 function startWebAuth() {
   PasswordModal.show({
-    title: 'Login',
-    message: 'Enter username and password to load your data',
+    title: i18n.t('login.title'),
+    message: i18n.t('login.webMessage'),
     mode: 'unlock',
     showUsername: true,
-    cancelText: 'Cancel',
+    cancelText: i18n.t('login.cancelLocal'),
     onOk: function(password, username) {
-      showToast('Loading...');
+      showToast(i18n.t('msg.loading'));
       Auth.login(username, password).catch(function(err) {
-        showToast(err.message || 'Login failed');
-        // 失败后重新弹窗
-        setTimeout(startWebAuth, 600);
+        showToast(err.message || i18n.t('login.failed'));
+        // 失败后提示选择本地文件夹，加载本地数据
+        fallbackToLocalWithFolderSelection();
       });
     },
     onCancel: function() {
-      render();
+      // 跳过 → 提示选择本地文件夹
+      fallbackToLocalWithFolderSelection();
     }
-  });
-}
-
-function startLocalAuth() {
-  // 本地模式也支持用户名输入（方便以后切换）
-  PasswordModal.show({
-    title: 'Login',
-    message: 'Enter username and password (leave empty to skip)',
-    mode: 'unlock',
-    showUsername: true,
-    cancelText: 'Skip (Offline)',
-    onOk: function(password, username) {
-      if (!username && !password) {
-        // 都为空 → 直接进入离线模式
-        render();
-        return;
-      }
-      if (!username) {
-        // 无用户名有密码 → 尝试作为主人本地登录
-        tryLocalOwnerLogin(password);
-        return;
-      }
-      // 有用户名 → 尝试在线登录
-      showToast('Loading...');
-      Auth.login(username, password).then(function() {
-        // 登录成功
-      }).catch(function(err) {
-        showToast(err.message || 'Login failed');
-        setTimeout(startLocalAuth, 600);
-      });
-    },
-    onCancel: function() {
-      // 跳过 → 离线模式
-      render();
-    }
-  });
-}
-
-function tryLocalOwnerLogin(password) {
-  FileAccess.getDirHandle(null).then(function(handle) {
-    if (!handle) {
-      showToast('No local work path. Use Settings to configure.');
-      render();
-      return;
-    }
-    return FileAccess.readLocalFile('config.json').then(function(configText) {
-      if (!configText) {
-        showToast('No local config found.');
-        render();
-        return;
-      }
-      FileAccess.updateConfigCache(configText);
-      GitHub.unlock(password).then(function() {
-        return GitHub.fetchPlanData().then(function(data) {
-          if (data) {
-            applyRemoteData(data);
-            showToast('Loaded from GitHub!');
-          } else {
-            fallbackToLocal();
-          }
-        });
-      }).catch(function() {
-        showToast('Wrong password!');
-        setTimeout(startLocalAuth, 600);
-      });
-    });
-  }).catch(function() {
-    render();
   });
 }
 
@@ -312,13 +255,13 @@ function tryLoadFromLocal() {
         GitHub.fetchPlanData().then(function(data) {
           if (data) {
             applyRemoteData(data);
-            showToast('Loaded from GitHub!');
+            showToast(i18n.t('msg.loadedFromGithub'));
           } else {
             // GitHub 无数据 → 回退本地
             fallbackToLocal();
           }
         }).catch(function(err) {
-          showToast('GitHub failed, loading local...');
+          showToast(i18n.t('msg.githubFailedLoadedLocal'));
           fallbackToLocal();
         });
       }, function() {
@@ -341,21 +284,21 @@ function tryLoadFromLocal() {
 /** 授权工作目录访问权限 */
 function grantAccess() {
   var btn = document.getElementById('btn-grant-access');
-  btn.textContent = 'Requesting...';
+  btn.textContent = i18n.t('access.requesting');
   btn.disabled = true;
   FileAccess._rootDirHandle.requestPermission({ mode: 'readwrite' }).then(function(perm) {
-    btn.textContent = 'Grant Workspace Access';
+    btn.textContent = i18n.t('access.btn');
     btn.disabled = false;
     if (perm === 'granted') {
       document.getElementById('access-prompt').style.display = 'none';
       tryLoadFromLocal();
     } else {
-      showToast('Permission denied');
+      showToast(i18n.t('msg.permissionDenied'));
     }
   }).catch(function() {
-    btn.textContent = 'Grant Workspace Access';
+    btn.textContent = i18n.t('access.btn');
     btn.disabled = false;
-    showToast('Failed to request permission');
+    showToast(i18n.t('msg.connectionFailed') + 'permission');
   });
 }
 
@@ -370,14 +313,14 @@ function ensureWorkDirHandle() {
     ? state.currentUser.username : null;
 
   return new Promise(function(resolve) {
-    showConfirm('Select work directory: ' + dirName + '\n\nOK to open picker, Cancel to skip.', function(ok) {
+    showConfirm(i18n.t('msg.selectWorkDir', { dirName: dirName }), function(ok) {
       if (!ok) { resolve(); return; }
       window.showDirectoryPicker({ mode: 'readwrite' }).then(function(handle) {
         return FileAccess.saveDirHandle(handle, handleUsername).then(function() {
-          showToast('Work path set!');
+          showToast(i18n.t('msg.workPathSet'));
         });
       }).then(function() { resolve(); }).catch(function(e) {
-        if (e.name !== 'AbortError') showToast('Failed: ' + e.message);
+        if (e.name !== 'AbortError') showToast(i18n.t('msg.saveFailed') + e.message);
         resolve();
       });
     });
@@ -398,12 +341,12 @@ function tryLoadFromWeb() {
         GitHub.fetchPlanData().then(function(data) {
           if (data) {
             applyRemoteData(data);
-            showToast('Loaded from GitHub!');
+            showToast(i18n.t('msg.loadedFromGithub'));
           } else {
             render();
           }
         }).catch(function(err) {
-          showToast('Failed to load: ' + (err.message || err));
+          showToast(i18n.t('msg.connectionFailed') + (err.message || err));
           render();
         });
       });
@@ -418,15 +361,15 @@ function tryLoadFromWeb() {
 /** 弹出密码框，成功后执行 onOk 回调 */
 function promptPasswordAndLoad(onOk, onCancel) {
   PasswordModal.show({
-    title: 'Unlock GitHub Sync',
-    message: 'Enter password to load data from GitHub',
+    title: i18n.t('unlock.title'),
+    message: i18n.t('login.webMessage'),
     mode: 'unlock',
-    cancelText: 'Skip (Offline)',
+    cancelText: i18n.t('login.cancelLocal'),
     onOk: function(password) {
       GitHub.unlock(password).then(function() {
         if (onOk) onOk();
       }).catch(function(err) {
-        showToast('Wrong password!');
+        showToast(i18n.t('msg.wrongPassword'));
         // 允许重试
         setTimeout(function() {
           promptPasswordAndLoad(onOk, onCancel);
@@ -457,12 +400,64 @@ function fallbackToLocal() {
     render();
     return;
   }
-  Storage.loadLocalPlanData().then(function(loaded) {
-    if (loaded) {
-      state.dataSource = 'local';
-      updateToggleUI();
-    }
+  // 先尝试加载本地 config.json 到内存缓存
+  FileAccess.readLocalFile('config.json').then(function(configText) {
+    if (configText) FileAccess.updateConfigCache(configText);
+  }).catch(function() {}).then(function() {
+    return Storage.loadLocalPlanData().then(function(loaded) {
+      if (loaded) {
+        state.dataSource = 'local';
+        updateToggleUI();
+      }
+      render();
+    });
+  });
+}
+
+/**
+ * 登录失败后：提示用户选择本地文件夹 → 加载本地数据
+ * 如果已有有效句柄，直接加载本地数据
+ * 如果没有，弹出 WorkPathModal 让用户选择文件夹
+ */
+function fallbackToLocalWithFolderSelection() {
+  if (FileAccess.hasValidHandle()) {
+    // 已有句柄，直接加载本地数据
+    _loadConfigAndLocalData(i18n.t('msg.loginFailedUseLocal'));
+  } else if (window.showDirectoryPicker) {
+    // 无句柄，弹出文件夹选择弹窗
+    WorkPathModal.show({
+      mode: 'select',
+      onSelect: function(handle) {
+        // 用户选择了文件夹，加载本地数据
+        _loadConfigAndLocalData(i18n.t('msg.loginFailedUseLocal'));
+      },
+      onCancel: function() {
+        // 用户取消选择，直接渲染空状态
+        render();
+      }
+    });
+  } else {
+    // 浏览器不支持目录选择 API
+    showToast(i18n.t('msg.loginFailedNoLocal'));
     render();
+  }
+}
+
+/** 加载本地 config.json 缓存到内存，然后加载 plandata.json */
+function _loadConfigAndLocalData(successMsg) {
+  FileAccess.readLocalFile('config.json').then(function(configText) {
+    if (configText) FileAccess.updateConfigCache(configText);
+  }).catch(function() {}).then(function() {
+    return Storage.loadLocalPlanData().then(function(loaded) {
+      if (loaded) {
+        state.dataSource = 'local';
+        updateToggleUI();
+        if (successMsg) showToast(successMsg);
+      } else {
+        showToast(i18n.t('msg.loginFailedNoLocal'));
+      }
+      render();
+    });
   });
 }
 
@@ -470,6 +465,7 @@ function fallbackToLocal() {
 window._app = {
   applyRemoteData: applyRemoteData,
   fallbackToLocal: fallbackToLocal,
+  fallbackToLocalWithFolderSelection: fallbackToLocalWithFolderSelection,
   updateToggleUI: updateToggleUI,
   render: render,
   showToast: showToast,
@@ -480,42 +476,42 @@ window._app = {
 
 function handleSaveLocal() {
   if (!hasAnyData()) {
-    showToast('No data to save');
+    showToast(i18n.t('msg.noDataToSave'));
     return;
   }
   if (!FileAccess.hasValidHandle()) {
-    showToast('No local work path configured. Click Settings.');
+    showToast(i18n.t('msg.noLocalPath'));
     return;
   }
   Storage.saveLocal().then(function() {
-    showToast('Saved locally!');
+    showToast(i18n.t('msg.savedLocally'));
   }).catch(function(e) {
     if (e.message === 'Permission denied') {
-      showToast('Permission denied. Try again.');
+      showToast(i18n.t('msg.permissionDenied'));
     } else {
-      showToast('Save failed: ' + e.message);
+      showToast(i18n.t('msg.saveFailed') + e.message);
     }
   });
 }
 
 function handleSaveRemote() {
   if (!hasAnyData()) {
-    showToast('No data to save');
+    showToast(i18n.t('msg.noDataToSave'));
     return;
   }
   // 需要先有 GitHub 凭据
   var doSave = function() {
     if (!GitHub.hasPassword()) {
       PasswordModal.show({
-        title: 'Enter Password',
-        message: 'Enter password to push to GitHub',
+        title: i18n.t('password.title'),
+        message: i18n.t('login.webMessage'),
         mode: 'unlock',
-        cancelText: 'Cancel',
+        cancelText: i18n.t('login.cancelLocal'),
         onOk: function(password) {
           GitHub.unlock(password).then(function() {
             doRemoteSave();
           }).catch(function() {
-            showToast('Wrong password!');
+            showToast(i18n.t('msg.wrongPassword'));
           });
         }
       });
@@ -527,19 +523,19 @@ function handleSaveRemote() {
   if (FileAccess.hasConfig()) {
     doSave();
   } else {
-    showToast('No GitHub config found. Click Settings to configure.');
+    showToast(i18n.t('msg.noGithubConfig'));
   }
 }
 
 function doRemoteSave() {
   if (FileAccess.hasValidHandle()) {
     Storage.saveRemote().then(function() {
-      showToast('Saved locally & pushed to GitHub!');
+      showToast(i18n.t('msg.savedLocalAndRemote'));
     }).catch(function(e) {
       if (!state.dirty) {
-        showToast('Saved locally, but push failed: ' + e.message);
+        showToast(i18n.t('msg.savedLocalPushFailed') + e.message);
       } else {
-        showToast('Failed: ' + e.message);
+        showToast(i18n.t('msg.saveFailed') + e.message);
       }
     });
   } else {
@@ -547,9 +543,9 @@ function doRemoteSave() {
     GitHub.submitPlanData().then(function() {
       state.dirty = false;
       Storage._updateDirtyIndicator();
-      showToast('Pushed to GitHub!');
+      showToast(i18n.t('msg.pushedToGithub'));
     }).catch(function(e) {
-      showToast('Push failed: ' + e.message);
+      showToast(i18n.t('msg.pushFailed') + e.message);
     });
   }
 }
@@ -560,7 +556,8 @@ function toggleDataSource() {
   if (state.dataSource === 'remote') {
     // 切换到本地
     if (!FileAccess.hasValidHandle()) {
-      showToast('No local work path configured');
+      // 没有本地路径，弹窗让用户选择
+      _loadConfigAndLocalData(i18n.t('msg.switchedToLocal'));
       return;
     }
     Storage.loadLocalPlanData().then(function(loaded) {
@@ -568,12 +565,12 @@ function toggleDataSource() {
         state.dataSource = 'local';
         updateToggleUI();
         render();
-        showToast('Switched to local data');
+        showToast(i18n.t('msg.switchedToLocal'));
       } else {
-        showToast('No local data found');
+        showToast(i18n.t('msg.noLocalData'));
       }
     }).catch(function(e) {
-      showToast('Failed: ' + e.message);
+      showToast(i18n.t('msg.saveFailed') + e.message);
     });
   } else {
     // 切换到远程
@@ -581,24 +578,30 @@ function toggleDataSource() {
       GitHub.fetchPlanData().then(function(data) {
         if (data) {
           applyRemoteData(data);
-          showToast('Switched to GitHub data');
+          showToast(i18n.t('msg.switchedToRemote'));
         } else {
-          showToast('No remote data yet. Use "Save Remote" to push local data.');
+          showToast(i18n.t('msg.noRemoteData'));
         }
       }).catch(function(e) {
-        showToast('Failed: ' + e.message);
+        showToast(i18n.t('msg.saveFailed') + e.message);
       });
     };
 
     if (!GitHub.hasPassword()) {
       PasswordModal.show({
-        title: 'Enter Password',
-        message: 'Enter password to load from GitHub',
+        title: i18n.t('password.title'),
+        message: i18n.t('login.webMessage'),
         mode: 'unlock',
-        cancelText: 'Cancel',
+        cancelText: i18n.t('login.cancelLocal'),
         onOk: function(password) {
           GitHub.unlock(password).then(function() { doSwitch(); })
-            .catch(function() { showToast('Wrong password!'); });
+            .catch(function(e) {
+              if (e === 'No config loaded' || (e && e.message === 'No config loaded')) {
+                showToast(i18n.t('msg.noLocalConfig'));
+              } else {
+                showToast(i18n.t('msg.wrongPassword'));
+              }
+            });
         }
       });
     } else {
@@ -611,11 +614,11 @@ function updateToggleUI() {
   var btn = document.getElementById('btn-toggle-source');
   if (!btn) return;
   if (state.dataSource === 'remote') {
-    btn.textContent = 'Remote';
+    btn.textContent = i18n.t('btn.remote');
     btn.style.background = '#e8f4fd';
     btn.style.borderColor = '#3498db';
   } else {
-    btn.textContent = 'Local';
+    btn.textContent = i18n.t('btn.local');
     btn.style.background = '#f0f8e8';
     btn.style.borderColor = '#27ae60';
   }

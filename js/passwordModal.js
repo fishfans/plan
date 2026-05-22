@@ -51,13 +51,13 @@ var PasswordModal = {
     // 根据模式切换 UI
     if (options.mode === 'set') {
       confirmInput.style.display = 'block';
-      okBtn.textContent = 'Save';
+      okBtn.textContent = i18n.t('password.save');
     } else {
       confirmInput.style.display = 'none';
-      okBtn.textContent = 'OK';
+      okBtn.textContent = i18n.t('password.ok');
     }
 
-    cancelBtn.textContent = options.cancelText || 'Skip';
+    cancelBtn.textContent = options.cancelText || i18n.t('password.skip');
     cancelBtn.style.display = options.hideCancel ? 'none' : '';
 
     this._onOk = options.onOk || null;
@@ -81,14 +81,14 @@ var PasswordModal = {
     var error = document.getElementById('password-error');
 
     if (!input.value) {
-      error.textContent = 'Password cannot be empty';
+      error.textContent = i18n.t('password.passwordEmpty');
       error.style.display = 'block';
       return;
     }
 
     // 设置模式：检查两次密码是否一致
     if (confirmInput.style.display !== 'none' && confirmInput.value !== input.value) {
-      error.textContent = 'Passwords do not match';
+      error.textContent = i18n.t('password.passwordMismatch');
       error.style.display = 'block';
       return;
     }

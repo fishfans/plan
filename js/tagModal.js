@@ -25,7 +25,7 @@ function renderTagList() {
     html += '</div>';
   }
   if (!html) {
-    html = '<div style="text-align:center;color:#888;padding:8px;">No tags yet. Add one below!</div>';
+    html = '<div style="text-align:center;color:#888;padding:8px;">' + i18n.t('tagModal.empty') + '</div>';
   }
   container.innerHTML = html;
   bindTagListEvents();
@@ -66,7 +66,7 @@ function addTag() {
   var nameEl = document.getElementById('new-tag-name');
   var colorEl = document.getElementById('new-tag-color');
   var name = nameEl.value.trim();
-  if (!name) { showToast('Please enter a tag name'); return; }
+  if (!name) { showToast(i18n.t('tagModal.tagNameRequired')); return; }
   state.tags.push({ id: uid(), name: name, color: colorEl.value });
   nameEl.value = '';
   markDirty();

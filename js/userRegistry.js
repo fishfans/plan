@@ -49,11 +49,9 @@ var UserRegistry = {
     if (projectRepo && projectRepo.owner && projectRepo.repo) {
       var url = 'https://api.github.com/repos/' + projectRepo.owner + '/' + projectRepo.repo +
         '/contents/' + encodeURIComponent(filePath) + '?ref=' + (projectRepo.branch || 'main');
-      console.log('[DEBUG fetchUserConfigBlob] 通过 GitHub API 获取:', url);
       return fetch(url, {
         headers: { 'Accept': 'application/vnd.github.v3+json' }
       }).then(function(res) {
-        console.log('[DEBUG fetchUserConfigBlob] status:', res.status);
         if (res.status === 404) return null;
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json().then(function(data) {
