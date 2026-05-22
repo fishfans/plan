@@ -533,26 +533,13 @@ function handleSaveRemote() {
 }
 
 function doRemoteSave() {
-  if (FileAccess.hasValidHandle()) {
-    Storage.saveRemote().then(function() {
-      showToast(i18n.t('msg.savedLocalAndRemote'));
-    }).catch(function(e) {
-      if (!state.dirty) {
-        showToast(i18n.t('msg.savedLocalPushFailed') + e.message);
-      } else {
-        showToast(i18n.t('msg.saveFailed') + e.message);
-      }
-    });
-  } else {
-    // 无本地路径 → 只推 GitHub
-    GitHub.submitPlanData().then(function() {
-      state.dirty = false;
-      Storage._updateDirtyIndicator();
-      showToast(i18n.t('msg.pushedToGithub'));
-    }).catch(function(e) {
-      showToast(i18n.t('msg.pushFailed') + e.message);
-    });
-  }
+  GitHub.submitPlanData().then(function() {
+    state.dirty = false;
+    Storage._updateDirtyIndicator();
+    showToast(i18n.t('msg.pushedToGithub'));
+  }).catch(function(e) {
+    showToast(i18n.t('msg.saveFailed') + e.message);
+  });
 }
 
 // ==================== 数据源切换 ====================
